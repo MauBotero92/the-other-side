@@ -1,5 +1,5 @@
-# from TOS_Pipeline.dcc.maya.qt_compat import wdg, core, gui
-# from TOS_Pipeline.dcc.maya.qt_utils import mbr_util_get_maya_window
+# from TOS_Pipeline.pipeline.dcc.maya.qt_compat import wdg, core, gui
+# from TOS_Pipeline.pipeline.dcc.maya.qt_utils import mbr_util_get_maya_window
 #
 # # -------------------------------------
 #
