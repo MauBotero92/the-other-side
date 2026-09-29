@@ -1,4 +1,34 @@
+# -------------------------------------
+#
+#       Import Modules
+#
+# -------------------------------------
+
 import os
+import platform
+import ctypes
+import string
+import maya.cmds as cmds
+
+# -------------------------------------------
+#
+#       Export Config
+#
+# -------------------------------------------
+
+__all__ = [
+    'mbr_util_list_directory_contents',
+    'mbr_util_find_file',
+    'mbr_util_get_drive_label',
+    'mbr_util_get_tos_root',
+    'mbr_util_get_tos_path',
+]
+
+# -------------------------------------------
+#
+#       File System Functions
+#
+# -------------------------------------------
 
 '''
 PURPOSE:        Return a list of folders or files in a given directory
@@ -31,3 +61,88 @@ def mbr_util_find_file(filename, root_path):
             return os.path.join(dirpath, filename)
 
     return None
+
+'''
+PURPOSE:        Gets the drive letter 
+PROCEDURE:      > Allocate two empty buffers. One receiving the volume label, the other one the filesystem name
+                > Gets the volume information and store it in a variable rc
+ASSUMPTIONS:
+'''
+def mbr_util_get_drive_label(drive):
+
+    volume_name_buffer = ctypes.create_unicode_buffer(1024)
+    fs_name_buffer = ctypes.create_unicode_buffer(1024)
+
+    rc = ctypes.windll.kernel32.GetVolumeInformationW(
+        ctypes.c_wchar_p(drive),
+        volume_name_buffer,
+        ctypes.sizeof(volume_name_buffer),
+        None,
+        None,
+        None,
+        fs_name_buffer,
+        ctypes.sizeof(fs_name_buffer)
+    )
+
+    if rc:
+        return volume_name_buffer.value
+    return ""
+
+'''
+PURPOSE:        Gets the root path for pCloud on the system
+PROCEDURE:      > Gets the platform and stores it in a variable
+                > Runs the platform logic to get the pCloud root depending if it is Windows, Mac, or Linux
+ASSUMPTIONS:    There is no Linux machine on the team. Is either Windows or Mac
+'''
+def mbr_util_get_tos_root():
+
+    system = platform.system()
+
+    if system == 'Windows':
+        drives = []
+
+        for letter in string.ascii_uppercase:
+            drive = f"{letter}:/"
+            if os.path.exists(drive):
+                label = mbr_util_get_drive_label(drive)
+                drives.append(f"{drive}{label}")
+
+        for drive in drives:
+            if 'pCloud Drive' in drive:
+                drive_letter = drive[:3]
+            else:
+                pass
+
+        return f"{drive_letter}The Other Side"
+
+    elif system == 'Darwin':
+        home = Path.home()
+
+        return Path(f"{home}/pCloud Drive/The Other Side")
+
+    elif system == 'Linux':
+        return 'Linux'
+
+    else:
+        return None
+
+'''
+PURPOSE:        Get TOS workspace path
+PROCEDURE:      > Store the drive letter and the workspace in separate variables
+                > If 'The Other Side' is in the current workspace, rebuild the string to match the system.
+ASSUMPTIONS:    None
+'''
+def mbr_util_get_tos_path():
+
+    # Stores the drive letter and the workspace
+    tos_root = mbr_util_get_tos_root()
+    drive = tos_root[:2]
+    cur_wks = cmds.workspace(q=True, rd=True)
+
+    # If The Other Side is in the current workspace, changes the drive letter and rebuilds the workspace string
+    if 'The Other Side' in cur_wks:
+        cur_wks_rel = cur_wks[2:]
+        cur_wks_concat = f"{drive}{cur_wks_rel}"
+        return cur_wks_concat
+    else:
+        return None

@@ -6,6 +6,7 @@
 
 from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg, core, gui
 from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_utils import mbr_util_get_maya_window
+from TOS_Pipeline.pipeline.core.fs_utils import *
 
 import maya.cmds as cmds
 
@@ -78,8 +79,8 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         self.sequence_combo = None
         self.stage_combo = None
+        self.shot_number_combo = None
 
-        self.shot_number_list = None
         self.file_list = None
 
         self.thumbnail_label = None
@@ -96,24 +97,22 @@ class tos_scene_manager_window(wdg.QMainWindow):
         #
         # -------------------------------------
 
-        # self.os_root = get_os_root()
+        # Init Sequences List
+        self.project_path = mbr_util_get_tos_path()
+
+        if self.project_path:
+            self.sequences_path = f"{self.project_path}Sequences"
+            self.init_sequences_list = mbr_util_list_directory_contents(self.sequences_path, content_type='folders')
+        else:
+            self.init_sequences_list = None
+
+        # Combos first click variables
+        self.sequence_first_click = True
+        self.shot_number_first_click = True
+        self.stage_first_click = True
+
+        # Current workspace variable
         self.current_wks = cmds.workspace(q=True, rd=True)
-        # self.drive = self.current_wks[:2]
-        # self.current_wks_rel = self.current_wks[2:]
-        # self.current_wks_concat = f"{self.drive}{self.current_wks_rel}"
-        #
-        # self.sequences_path = f"{self.os_root}/Production/Sequences"
-        #
-        # if self.current_wks_concat == f"{self.os_root}/Production/":
-        #     self.sample_sequences_list = ['-']
-        #     self.sample_sequences_list.append(list_folder_in_dir(self.sequences_path))
-        #     self.sequences_list = [self.sample_sequences_list[0]] + self.sample_sequences_list[1]
-        # else:
-        #     self.sequences_list = []
-        #
-        # self.sequence_first_click = True
-        # self.shot_number_first_click = True
-        # self.stage_first_click = True
 
         # -------------------------------------
         #
@@ -215,11 +214,11 @@ class tos_scene_manager_window(wdg.QMainWindow):
         # -------------------------------------
 
         # Workspace LineEdit
-        self.workspace_read_btn = wdg.QLineEdit(self.current_wks)
-        self.workspace_read_btn.setStyleSheet(self.workspace_read_style)
-        self.workspace_read_btn.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
-        self.workspace_read_btn.setFixedHeight(self.wks_height)
-        self.workspace_read_btn.setEnabled(False)
+        self.workspace_read_le = wdg.QLineEdit(self.current_wks)
+        self.workspace_read_le.setStyleSheet(self.workspace_read_style)
+        self.workspace_read_le.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
+        self.workspace_read_le.setFixedHeight(self.wks_height)
+        self.workspace_read_le.setEnabled(False)
 
         # Set Project Button
         self.set_project_btn = wdg.QPushButton('Set')
@@ -229,7 +228,8 @@ class tos_scene_manager_window(wdg.QMainWindow):
         # Sequence Combo Box
         self.sequence_combo = wdg.QComboBox()
         self.sequence_combo.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
-        # self.sequence_combo.addItems(self.sequences_list)
+        self.sequence_combo.addItem('-')
+        self.sequence_combo.addItems(self.init_sequences_list)
 
         # Shot Number Combo Box
         self.shot_number_combo = wdg.QComboBox()
@@ -274,7 +274,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         self.metadata_date_label = wdg.QLabel('')
 
         # Metadata Frame Range Label
-        self.metadata_framerange_label = wdg.QLabel('')
+        self.metadata_frame_range_label = wdg.QLabel('')
 
         # Metadata Artist Label
         self.metadata_artist_label = wdg.QLabel('')
@@ -446,7 +446,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         # Metadata Layout Rows
         metadata_date_lyt = wdg.QHBoxLayout()
-        metadata_framerange_lyt = wdg.QHBoxLayout()
+        metadata_frame_range_lyt = wdg.QHBoxLayout()
         metadata_artist_lyt = wdg.QHBoxLayout()
         metadata_size_lyt = wdg.QHBoxLayout()
 
@@ -460,7 +460,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         # Metadata Group Rows
         metadata_lyt.addRow('Last Saved:   ', metadata_date_lyt)
-        metadata_lyt.addRow('Frame Range:   ', metadata_framerange_lyt)
+        metadata_lyt.addRow('Frame Range:   ', metadata_frame_range_lyt)
         metadata_lyt.addRow('Artist:     ', metadata_artist_lyt)
         metadata_lyt.addRow('File Size:     ', metadata_size_lyt)
 
@@ -479,7 +479,6 @@ class tos_scene_manager_window(wdg.QMainWindow):
         sub_main_left_lyt.addLayout(top_lyt)
         sub_main_left_lyt.addLayout(upper_lyt)
         sub_main_left_lyt.addLayout(middle_lyt)
-        # sub_main_left_lyt.addLayout(bottom_lyt)
         sub_main_left_lyt.addStretch(1)
         sub_main_right_lyt.addLayout(thumbnail_lyt)
         sub_main_right_lyt.addWidget(metadata_grp)
@@ -505,7 +504,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         title_lyt.addWidget(self.title_label)
         project_frame_lyt.addWidget(self.project_frame)
         project_lyt.addWidget(self.project_label)
-        set_project_lyt.addWidget(self.workspace_read_btn)
+        set_project_lyt.addWidget(self.workspace_read_le)
         set_project_lyt.addWidget(self.set_project_btn)
         sequence_lyt.addWidget(self.sequence_combo)
         shot_number_lyt.addWidget(self.shot_number_combo)
@@ -513,7 +512,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         file_lyt.addWidget(self.file_list)
         thumbnail_lyt.addWidget(self.thumbnail_label)
         metadata_date_lyt.addWidget(self.metadata_date_label)
-        metadata_framerange_lyt.addWidget(self.metadata_framerange_label)
+        metadata_frame_range_lyt.addWidget(self.metadata_frame_range_label)
         metadata_artist_lyt.addWidget(self.metadata_artist_label)
         metadata_size_lyt.addWidget(self.metadata_size_label)
         load_lyt.addWidget(self.load_btn)
