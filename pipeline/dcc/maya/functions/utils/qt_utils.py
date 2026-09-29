@@ -1,5 +1,5 @@
-from TOS_Pipeline.pipeline.dcc.maya.qt_compat import wrapInstance as wrap
-from TOS_Pipeline.pipeline.dcc.maya.qt_compat import wdg
+from TOS_Pipeline.pipeline.dcc.maya.functions.utils.qt_compat import wrapInstance as wrap
+from TOS_Pipeline.pipeline.dcc.maya.functions.utils.qt_compat import wdg
 import maya.OpenMayaUI as omui
 
 '''
