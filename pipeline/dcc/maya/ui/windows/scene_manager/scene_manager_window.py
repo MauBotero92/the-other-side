@@ -474,12 +474,18 @@ class tos_scene_manager_window(wdg.QMainWindow):
         main_lyt.addLayout(title_frame_lyt)
         main_lyt.addLayout(project_frame_lyt)
         main_lyt.addLayout(sub_main_lyt)
+
+        # Sub Main Layout
         sub_main_lyt.addLayout(sub_main_left_lyt)
         sub_main_lyt.addLayout(sub_main_right_lyt)
+
+        # Sub Main Left Layout
         sub_main_left_lyt.addLayout(top_lyt)
         sub_main_left_lyt.addLayout(upper_lyt)
         sub_main_left_lyt.addLayout(middle_lyt)
         sub_main_left_lyt.addStretch(1)
+
+        # Sub Main Right Layout
         sub_main_right_lyt.addLayout(thumbnail_lyt)
         sub_main_right_lyt.addWidget(metadata_grp)
         sub_main_right_lyt.addLayout(bottom_lyt)
@@ -500,21 +506,34 @@ class tos_scene_manager_window(wdg.QMainWindow):
         #
         # -------------------------------------
 
+        # Title Widgets
         title_frame_lyt.addWidget(self.title_frame)
         title_lyt.addWidget(self.title_label)
+
+        # Project Widgets
         project_frame_lyt.addWidget(self.project_frame)
         project_lyt.addWidget(self.project_label)
+
+        # Set Project Widgets
         set_project_lyt.addWidget(self.workspace_read_le)
         set_project_lyt.addWidget(self.set_project_btn)
         sequence_lyt.addWidget(self.sequence_combo)
+
+        # Shot Selection Widgets
         shot_number_lyt.addWidget(self.shot_number_combo)
         stage_lyt.addWidget(self.stage_combo)
         file_lyt.addWidget(self.file_list)
+
+        # Thumbnail Widgets
         thumbnail_lyt.addWidget(self.thumbnail_label)
+
+        # Metadata Widgets
         metadata_date_lyt.addWidget(self.metadata_date_label)
         metadata_frame_range_lyt.addWidget(self.metadata_frame_range_label)
         metadata_artist_lyt.addWidget(self.metadata_artist_label)
         metadata_size_lyt.addWidget(self.metadata_size_label)
+
+        # Load Widgets
         load_lyt.addWidget(self.load_btn)
 
     # -------------------------------------
@@ -524,7 +543,15 @@ class tos_scene_manager_window(wdg.QMainWindow):
     # -------------------------------------
 
     def create_connections(self):
-        pass
+
+        self.set_project_btn.pressed.connect(self.set_project_btn_pressed)
+
+        self.sequence_combo.currentIndexChanged.connect(self.sequence_combo_changed)
+        self.shot_number_combo.currentIndexChanged.connect(self.shot_number_combo_changed)
+        self.stage_combo.currentIndexChanged.connect(self.stage_combo_changed)
+        self.file_list.currentRowChanged.connect(self.file_list_changed)
+
+        self.load_btn.clicked.connect(self.load_btn_clicked)
 
     # -------------------------------------
     #
@@ -540,6 +567,394 @@ class tos_scene_manager_window(wdg.QMainWindow):
     #       Widget Signals
     #
     # -------------------------------------
+
+    def set_project_btn_pressed(self):
+
+        # Block combos signals
+        util_block_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
+
+        self.project_wks = f"{self.os_root}/Production/"
+        cmds.workspace(self.project_wks, openWorkspace=True)
+
+        # Sets the read button text to current workspace
+        self.workspace_read_btn.setText(self.project_wks)
+
+        # Set Project Button clean up
+        self.set_project_btn.setDown(False)
+        self.set_project_btn.clearFocus()
+
+        # Sequences Path
+        self.sequences_path = f"{self.project_wks}Sequences"
+
+        # Enables the UI and fills up the fields if the workspace is set correctly
+        self.sequences_list_initial = list_folder_in_dir(self.sequences_path)
+        self.sequences_list = ['-'] + self.sequences_list_initial
+
+        self.sequence_combo.setEnabled(True)
+        self.sequence_combo.clear()
+        self.sequence_combo.addItems(self.sequences_list)
+
+        # Disables Set Project Button
+        self.set_project_btn.setEnabled(False)
+
+        # Unlock combos signals
+        util_unlock_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
+
+    def sequence_combo_changed(self):
+
+        # Initial variables and state
+        self.current_sequence = self.sequence_combo.currentText()
+        self.shot_number_combo.setEnabled(True)
+
+        # Cleans up sequence combo box if trying to use it after the first time
+        engine_clean_up_initial_index(self, 'sequence_first_click', self.sequence_combo, self.sequences_list)
+
+        # Blocks signals to prevent unwanted behavior in the other combo boxes
+        util_block_signals([self.shot_number_combo, self.stage_combo])
+
+        # Combo Boxes clean up
+        self.shot_number_combo.setEnabled(True)
+        self.shot_number_combo.clear()
+
+        self.stage_combo.setEnabled(False)
+        self.stage_combo.clear()
+
+        self.file_list.setEnabled(False)
+        self.file_list.clear()
+
+        # Adding the shot number folders into the shot combo box
+        shot_number_folder_path_list = [
+            self.sequences_path, '/',
+            self.current_sequence
+        ]
+
+        shot_number_folder_path = ''.join(shot_number_folder_path_list)
+        self.shot_number_list_initial = list_folder_in_dir(shot_number_folder_path)
+
+        self.shot_number_list_sorted = sorted(self.shot_number_list_initial, key=natural_key)
+        self.shot_number_list = ['-'] + self.shot_number_list_sorted
+
+        if self.shot_number_combo.count() == 0:
+            self.shot_number_combo.addItems(self.shot_number_list)
+        else:
+            self.shot_number_combo.clear()
+            self.shot_number_combo.addItems(self.shot_number_list)
+
+        # Enables signals to allow normal behavior in the other combo boxes
+        util_unlock_signals([self.shot_number_combo, self.stage_combo])
+
+    def shot_number_combo_changed(self):
+
+        # Initial variables
+        self.current_shot_number = self.shot_number_combo.currentText()
+        self.current_stage = self.stage_combo.currentText()
+
+        # Cleans up shot number combo box if trying to use it after the first time
+        engine_clean_up_initial_index(self, 'shot_number_first_click', self.shot_number_combo, self.shot_number_list)
+
+        if self.stage_combo.count() == 0:
+            # Block signals
+            util_block_signals([self.stage_combo])
+
+            # Combo Boxes clean up
+            self.stage_combo.setEnabled(True)
+            self.stage_combo.clear()
+
+            self.file_list.setEnabled(False)
+            self.file_list.clear()
+
+            # Adding shot number files into the file combo box
+            shot_number_files_path_list = [
+                self.sequences_path, '/',
+                self.current_sequence, '/',
+                self.current_shot_number
+                ]
+
+            shot_number_files_path = ''.join(shot_number_files_path_list)
+            shot_number_folder_files = list_files_in_dir(shot_number_files_path)
+
+            # Adding stages folders into the stages combo box
+            stages_folders_path_list = [
+                self.sequences_path, '/',
+                self.current_sequence, '/',
+                self.current_shot_number
+                ]
+
+            stages_folders_path = ''.join(stages_folders_path_list)
+            self.stages_list_initial = list_folder_in_dir(stages_folders_path)
+
+            self.stages_list_filtered = [x for x in self.stages_list_initial if not x.startswith('.')]
+            self.stages_list = ['-'] + self.stages_list_filtered
+
+            if self.stage_combo.count() == 0:
+                self.stage_combo.addItems(self.stages_list)
+            else:
+                self.stage_combo.clear()
+                self.stage_combo.addItems(self.stages_list)
+
+            # Unlock signals
+            util_unlock_signals([self.stage_combo])
+
+        else:
+            # Block signals
+            util_block_signals([self.stage_combo])
+
+            # Save current stage selection
+            current_stage_text = self.stage_combo.currentText()
+
+            # Clear file combo and leave it as-is
+            self.file_list.clear()
+
+            # Guards against '-' stage
+            if current_stage_text == '-' or not current_stage_text:
+                util_unlock_signals([self.stage_combo])
+                return
+
+            # Rebuild stage combo for the new shot number
+            stage_files_path_list = [
+                self.sequences_path, '/',
+                self.current_sequence, '/',
+                self.current_shot_number, '/',
+                self.current_stage
+                ]
+
+            stage_files_path = ''.join(stage_files_path_list)
+            stage_folder_files = sorted(list_files_in_dir(stage_files_path))
+
+            self.stages_list_filtered = [x for x in self.stages_list_initial if not x.startswith('.')]
+            self.stages_list = ['-'] + self.stages_list_filtered
+
+            if len(stage_folder_files) == 0:
+                self.file_list.setEnabled(False)
+            else:
+                self.file_list.setEnabled(True)
+                self.file_list.addItems(stage_folder_files)
+
+            # Restore stage selection if it exists in the new shot
+            if current_stage_text in self.stages_list:
+                self.stage_combo.setCurrentText(current_stage_text)
+
+            self.file_list.setCurrentRow(self.file_list.count() - 1)
+
+            util_unlock_signals([self.stage_combo])
+
+    def stage_combo_changed(self):
+
+        # Intial variables
+        self.current_stage = self.stage_combo.currentText()
+
+        # Cleans up stage combo box if trying to use it after the first time
+        engine_clean_up_initial_index(self, 'stage_first_click', self.stage_combo, self.stages_list)
+
+        # Stage lists
+        stage_files_path_list = [
+            self.sequences_path, '/',
+            self.current_sequence, '/',
+            self.current_shot_number, '/',
+            self.current_stage
+            ]
+
+        stage_files_path = ''.join(stage_files_path_list)
+        stage_folder_files = sorted(list_files_in_dir(stage_files_path))
+
+        # Combo Boxes clean up
+        if len(stage_folder_files) == 0:
+            self.file_list.setEnabled(False)
+            self.file_list.clear()
+        else:
+            self.file_list.setEnabled(True)
+            self.file_list.clear()
+
+        # Adding files in the file combo box
+        if self.current_stage != '-':
+            self.file_list.clear()
+            self.file_list.addItems(stage_folder_files)
+
+        self.file_list.setCurrentRow(self.file_list.count() - 1)
+
+    def file_list_changed(self):
+
+        if not self.file_list.currentItem():
+            return
+
+        # Intial Variables
+        self.current_file = self.file_list.currentItem().text()
+        self.get_thumbnail()
+
+        # File path
+        file_path_list = [
+            self.sequences_path, '/',
+            self.current_sequence, '/',
+            self.current_shot_number, '/',
+            self.current_stage, '/',
+            self.current_file
+        ]
+        file_path = ''.join(file_path_list)
+
+        # Thumbnail path
+        thumb_path_list = [
+            self.sequences_path, '/',
+            self.current_sequence, '/',
+            self.current_shot_number, '/',
+            self.current_stage, '/',
+            '_thumbnail']
+        thumb_path = ''.join(thumb_path_list)
+
+        # Date
+        last_modified = datetime.fromtimestamp(os.path.getmtime(file_path))
+        self.metadata_date_label.setText(f"{last_modified.strftime('%Y-%m-%d %H:%M:%S')}")
+
+        # Artist and Time Range
+        self.metadata_artist_label.clear()
+        self.metadata_framerange_label.clear()
+
+        txt_path = Path(f"{thumb_path}/{self.current_file[:-3]}.txt")
+
+        if txt_path.exists():
+            with open(txt_path, 'r') as file:
+                content_artist = file.readline().strip()
+                content_framerange = file.readline().strip()
+            if content_artist:
+                self.metadata_artist_label.setText(content_artist)
+            else:
+                self.metadata_artist_label.setText('no data')
+            if content_framerange:
+                self.metadata_framerange_label.setText(content_framerange)
+            else:
+                self.metadata_framerange_label.setText('no data')
+        else:
+            self.metadata_artist_label.setText('unknown')
+            self.metadata_framerange_label.setText('unknown')
+
+        # File Size
+        self.metadata_size_label.clear()
+        file_size_raw = os.path.getsize(file_path) / (1024 ** 2)
+        file_size_round = round(file_size_raw, 2)
+        self.metadata_size_label.setText(f"{str(file_size_round)} Mb")
+
+
+    def load_btn_clicked(self):
+
+        # Initial Variables
+        self.current_file = self.file_list.currentItem().text()
+
+        # Sets the path that the Load button is pointing depending if the stage checkbox is checked
+        file_path_list = [
+            self.sequences_path, '/',
+            self.current_sequence, '/',
+            self.current_shot_number, '/',
+            self.current_stage, '/',
+            self.current_file
+        ]
+        file_path = ''.join(file_path_list)
+
+        # Variables to check if the file is modified or if it already has a path
+        is_modified = cmds.file(q=True, modified=True)
+        scene_name = cmds.file(q=True, sceneName=True)
+
+        # Raises message box when the current scene is not saved
+        if is_modified:
+            # Message box setup
+            is_modified_msg = wdg.QMessageBox()
+            is_modified_msg.setWindowTitle('Warning')
+            is_modified_msg.setText('Your scene is not saved. Do you want to save your file?')
+            is_modified_msg.setIcon(wdg.QMessageBox.Question)
+
+            # Message box buttons
+            is_modified_accept_btn = is_modified_msg.addButton('Yes', wdg.QMessageBox.AcceptRole)
+            is_modified_decline_btn = is_modified_msg.addButton('No', wdg.QMessageBox.RejectRole)
+
+            # Message box execution and clicked variable
+            is_modified_msg.exec()
+            is_modified_clicked = is_modified_msg.clickedButton()
+
+            # Save scene logic when user selects 'Yes'
+            if is_modified_clicked == is_modified_accept_btn:
+                if not scene_name:
+                    # File Dialog asking user where does he wants the file to be saved
+                    path, selected_filter = wdg.QFileDialog.getSaveFileName(
+                        parent=None,
+                        caption='Save Maya File',
+                        filter='Maya ASCII (*.ma);;Maya Binary (*.mb)')
+
+                    # Variables to get the base name of the new saved file
+                    path_base_name = os.path.basename(path)[:-3]
+
+                    naming_layout_sample = 'T400_000_Layout_v001_00'
+                    naming_layout_length = len(naming_layout_sample)
+
+                    # If the saved file is on the sequences path, save file and create a thumbnail
+                    # If new file doesn't follow the naming conventions, the tool doesn't allow to save
+                    if self.sequences_path in path:
+                        if 'layout' in path:
+                            if len(path_base_name) == naming_layout_length:
+                                # Delete unknown nodes
+                                delete_unknown_nodes()
+
+                                # Saves file
+                                cmds.file(rename=path)
+                                cmds.file(save=True, force=True, type='mayaAscii')
+
+                                # Message Box confirming the scene is saved
+                                untitled_scene_confirm_msg = wdg.QMessageBox()
+                                untitled_scene_confirm_msg.information(
+                                    None,
+                                    'Scene Saved',
+                                    f"Scene successfully saved on {path}"
+                                )
+
+                                # Creates thumbnail
+                                create_thumbnail()
+                            else:
+                                save_layout_error_msg = wdg.QMessageBox()
+                                save_layout_error_msg.critical(
+                                    None,
+                                    'Naming Convention Error',
+                                    'File should follow these naming conventions:\nT000_000_Layout_v001_00')
+                                return
+
+                    # Delete unknown nodes
+                    delete_unknown_nodes()
+
+                    # Renames to file dialog path and saves the file
+                    cmds.file(rename=path)
+                    cmds.file(save=True, force=True, type='mayaAscii')
+
+                    # Message Box confirming the scene is saved
+                    untitled_scene_confirm_msg = wdg.QMessageBox()
+                    untitled_scene_confirm_msg.information(
+                        None,
+                        'Scene Saved',
+                        f"Scene successfully saved on {path}"
+                    )
+
+                    open_file(file_path)
+                else:
+                    # Delete unknown nodes
+                    delete_unknown_nodes()
+
+                    # Saves current file
+                    cmds.file(save=True, force=True, type='mayaAscii')
+
+                    # Message box confirming the scene is saved
+                    modified_scene_confirm_msg = wdg.QMessageBox()
+                    modified_scene_confirm_msg.information(
+                        None,
+                        'Scene Saved',
+                        f"Scene successfully saved on {scene_name}"
+                    )
+
+                    # Creates thumbnail and opens the file
+                    create_thumbnail()
+                    open_file(file_path)
+
+            # Open file when user selects 'No'
+            elif is_modified_clicked == is_modified_decline_btn:
+                open_file(file_path)
+
+        # Opens file normally when the current scene is already saved
+        else:
+            open_file(file_path)
 
 # -------------------------------------
 #
