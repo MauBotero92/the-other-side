@@ -4,8 +4,10 @@
 #
 # -------------------------------------
 
-from TOS_Pipeline.pipeline.dcc.maya.functions.utils.qt_compat import wdg, core, gui
-from TOS_Pipeline.pipeline.dcc.maya.functions.utils.qt_utils import mbr_util_get_maya_window
+from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg, core, gui
+from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_utils import mbr_util_get_maya_window
+
+import maya.cmds as cmds
 
 # -------------------------------------
 #
@@ -90,7 +92,32 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         # -------------------------------------
         #
-        #       Styles and Widget Variables
+        #       Initialization Variables
+        #
+        # -------------------------------------
+
+        # self.os_root = get_os_root()
+        self.current_wks = cmds.workspace(q=True, rd=True)
+        # self.drive = self.current_wks[:2]
+        # self.current_wks_rel = self.current_wks[2:]
+        # self.current_wks_concat = f"{self.drive}{self.current_wks_rel}"
+        #
+        # self.sequences_path = f"{self.os_root}/Production/Sequences"
+        #
+        # if self.current_wks_concat == f"{self.os_root}/Production/":
+        #     self.sample_sequences_list = ['-']
+        #     self.sample_sequences_list.append(list_folder_in_dir(self.sequences_path))
+        #     self.sequences_list = [self.sample_sequences_list[0]] + self.sample_sequences_list[1]
+        # else:
+        #     self.sequences_list = []
+        #
+        # self.sequence_first_click = True
+        # self.shot_number_first_click = True
+        # self.stage_first_click = True
+
+        # -------------------------------------
+        #
+        #       Styles
         #
         # -------------------------------------
 
@@ -156,7 +183,6 @@ class tos_scene_manager_window(wdg.QMainWindow):
     # -------------------------------------
 
     def create_widgets(self):
-        pass
 
         # -------------------------------------
         #
@@ -189,11 +215,11 @@ class tos_scene_manager_window(wdg.QMainWindow):
         # -------------------------------------
 
         # Workspace LineEdit
-        self.workspace_read_le = wdg.QLineEdit()
-        self.workspace_read_le.setStyleSheet(self.workspace_read_style)
-        self.workspace_read_le.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
-        self.workspace_read_le.setFixedHeight(self.wks_height)
-        self.workspace_read_le.setEnabled(False)
+        self.workspace_read_btn = wdg.QLineEdit(self.current_wks)
+        self.workspace_read_btn.setStyleSheet(self.workspace_read_style)
+        self.workspace_read_btn.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
+        self.workspace_read_btn.setFixedHeight(self.wks_height)
+        self.workspace_read_btn.setEnabled(False)
 
         # Set Project Button
         self.set_project_btn = wdg.QPushButton('Set')
@@ -203,20 +229,23 @@ class tos_scene_manager_window(wdg.QMainWindow):
         # Sequence Combo Box
         self.sequence_combo = wdg.QComboBox()
         self.sequence_combo.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
+        # self.sequence_combo.addItems(self.sequences_list)
+
+        # Shot Number Combo Box
+        self.shot_number_combo = wdg.QComboBox()
+        self.shot_number_combo.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
+        self.shot_number_combo.setEnabled(False)
 
         # Stage Combo Box
         self.stage_combo = wdg.QComboBox()
         self.stage_combo.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
+        self.stage_combo.setEnabled(False)
 
         # -------------------------------------
         #
         #       Middle Widgets
         #
         # -------------------------------------
-
-        # Shot Number Combo Box
-        self.shot_number_list = wdg.QListWidget()
-        self.shot_number_list.setEnabled(False)
 
         # File Combo Box
         self.file_list = wdg.QListWidget()
@@ -245,7 +274,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         self.metadata_date_label = wdg.QLabel('')
 
         # Metadata Frame Range Label
-        self.metadata_frame_range_label = wdg.QLabel('')
+        self.metadata_framerange_label = wdg.QLabel('')
 
         # Metadata Artist Label
         self.metadata_artist_label = wdg.QLabel('')
@@ -292,6 +321,21 @@ class tos_scene_manager_window(wdg.QMainWindow):
         main_lyt.setAlignment(core.Qt.AlignTop)
         main_lyt.setContentsMargins(40,30,40,0)
 
+        sub_main_lyt = wdg.QHBoxLayout()
+        sub_main_lyt.setAlignment(core.Qt.AlignTop)
+
+        sub_main_left_lyt = wdg.QVBoxLayout()
+        sub_main_left_lyt.setAlignment(core.Qt.AlignTop)
+        sub_main_left_lyt.setContentsMargins(0,0,0,0)
+
+        sub_main_right_lyt = wdg.QVBoxLayout()
+        sub_main_right_lyt.setAlignment(core.Qt.AlignTop)
+        sub_main_right_lyt.setContentsMargins(20,40,0,0)
+
+        # Thumbnail Layout
+        thumbnail_lyt = wdg.QVBoxLayout()
+        thumbnail_lyt.setAlignment(core.Qt.AlignTop)
+
         # -------------------------------------
         #
         #       Main Layout Sections
@@ -300,26 +344,21 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         # Title Layout
         title_frame_lyt = wdg.QVBoxLayout()
+
         title_lyt = wdg.QVBoxLayout(self.title_frame)
         title_lyt.setAlignment(core.Qt.AlignCenter)
 
-        # Project Layout
         project_frame_lyt = wdg.QVBoxLayout()
+
         project_lyt = wdg.QVBoxLayout(self.project_frame)
         project_lyt.setAlignment(core.Qt.AlignCenter)
-
-        sub_main_lyt = wdg.QHBoxLayout()
-        sub_main_lyt.setAlignment(core.Qt.AlignTop)
-
-        # -------------------------------------
-        #
-        #       Sub Main Layout Sections
-        #
-        # -------------------------------------
 
         # Top Layout
         top_lyt = wdg.QVBoxLayout()
         top_lyt.setContentsMargins(0, 20, 0, 0)
+
+        # Upper Layout
+        upper_lyt = wdg.QVBoxLayout()
 
         # Middle Layout
         middle_lyt = wdg.QVBoxLayout()
@@ -344,17 +383,49 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         set_project_grp.setStyleSheet(self.group_boxes_style)
 
+        # Sequence Layout
+        sequence_lyt = wdg.QHBoxLayout()
+
+        # Shot Number Layout
+        shot_number_lyt = wdg.QHBoxLayout()
+
+        # Stage Layout
+        stage_lyt = wdg.QHBoxLayout()
+
+        # Scene Selection Group Box
+        scene_selection_grp = wdg.QGroupBox('Scene Selection')
+        scene_selection_lyt = wdg.QFormLayout()
+        scene_selection_lyt.setLabelAlignment(core.Qt.AlignLeft)
+        scene_selection_lyt.setContentsMargins(10, 15, 10, 15)
+        scene_selection_grp.setLayout(scene_selection_lyt)
+
+        scene_selection_grp.setStyleSheet(self.group_boxes_style)
+
+        # Scene Selection Group Rows
+        scene_selection_lyt.addRow('Sequence     ', sequence_lyt)
+        scene_selection_lyt.addRow('Shot Number     ', shot_number_lyt)
+        scene_selection_lyt.addRow('Stage     ', stage_lyt)
+
         # -------------------------------------
         #
         #       Middle Layout Sections
         #
         # -------------------------------------
 
-        # Sequence Layout
-        sequence_lyt = wdg.QHBoxLayout()
+        # File Selection Layout
+        file_lyt = wdg.QHBoxLayout()
 
-        # Stage Layout
-        stage_lyt = wdg.QHBoxLayout()
+        # File Selection Group
+        file_selection_grp = wdg.QGroupBox('File Selection')
+        file_selection_grp.setFixedHeight(370)
+        file_selection_lyt = wdg.QFormLayout()
+        file_selection_lyt.setContentsMargins(10,15,10,15)
+        file_selection_grp.setLayout(file_selection_lyt)
+
+        file_selection_grp.setStyleSheet(self.group_boxes_style)
+
+        # File Selection Group Rows
+        file_selection_lyt.addRow(file_lyt)
 
         # -------------------------------------
         #
@@ -362,25 +433,10 @@ class tos_scene_manager_window(wdg.QMainWindow):
         #
         # -------------------------------------
 
-        # Bottom Left Layout
-        shot_number_lyt = wdg.QVBoxLayout()
-
-        # Bottom Middle Layout
-        file_name_lyt = wdg.QVBoxLayout()
-
-        # Bottom Right Layout
-        bottom_right_lyt = wdg.QVBoxLayout()
-
-
-        # -------------------------------------
-        #
-        #       Thumbnail Section
-        #
-        # -------------------------------------
-
-        # Thumbnail Layout
-        thumbnail_lyt = wdg.QVBoxLayout()
-        thumbnail_lyt.setAlignment(core.Qt.AlignTop)
+        # Load Button
+        load_lyt = wdg.QHBoxLayout()
+        load_lyt.setAlignment(core.Qt.AlignCenter)
+        load_lyt.setContentsMargins(0,0,0,0)
 
         # -------------------------------------
         #
@@ -390,7 +446,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         # Metadata Layout Rows
         metadata_date_lyt = wdg.QHBoxLayout()
-        metadata_frame_range_lyt = wdg.QHBoxLayout()
+        metadata_framerange_lyt = wdg.QHBoxLayout()
         metadata_artist_lyt = wdg.QHBoxLayout()
         metadata_size_lyt = wdg.QHBoxLayout()
 
@@ -404,20 +460,9 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         # Metadata Group Rows
         metadata_lyt.addRow('Last Saved:   ', metadata_date_lyt)
-        metadata_lyt.addRow('Frame Range:   ', metadata_frame_range_lyt)
+        metadata_lyt.addRow('Frame Range:   ', metadata_framerange_lyt)
         metadata_lyt.addRow('Artist:     ', metadata_artist_lyt)
         metadata_lyt.addRow('File Size:     ', metadata_size_lyt)
-
-        # -------------------------------------
-        #
-        #       Load Button Section
-        #
-        # -------------------------------------
-
-        # Load Button
-        load_lyt = wdg.QHBoxLayout()
-        load_lyt.setAlignment(core.Qt.AlignCenter)
-        load_lyt.setContentsMargins(0,0,0,0)
 
         # -------------------------------------
         #
@@ -434,6 +479,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         sub_main_left_lyt.addLayout(top_lyt)
         sub_main_left_lyt.addLayout(upper_lyt)
         sub_main_left_lyt.addLayout(middle_lyt)
+        # sub_main_left_lyt.addLayout(bottom_lyt)
         sub_main_left_lyt.addStretch(1)
         sub_main_right_lyt.addLayout(thumbnail_lyt)
         sub_main_right_lyt.addWidget(metadata_grp)
@@ -467,7 +513,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         file_lyt.addWidget(self.file_list)
         thumbnail_lyt.addWidget(self.thumbnail_label)
         metadata_date_lyt.addWidget(self.metadata_date_label)
-        metadata_frame_range_lyt.addWidget(self.metadata_frame_range_label)
+        metadata_framerange_lyt.addWidget(self.metadata_framerange_label)
         metadata_artist_lyt.addWidget(self.metadata_artist_label)
         metadata_size_lyt.addWidget(self.metadata_size_label)
         load_lyt.addWidget(self.load_btn)
@@ -502,7 +548,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
 #
 # -------------------------------------
 
-def scene_manager_run():
+def run():
 
     global MAIN_WINDOW
     if not MAIN_WINDOW or not cmds.window(q=True, exists=True):
