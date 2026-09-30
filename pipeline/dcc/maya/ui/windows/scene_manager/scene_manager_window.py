@@ -112,7 +112,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
             self.init_sequences_list.append(mbr_util_list_directory_contents(self.sequences_path, content_type='folders'))
             self.sequences_list = [self.init_sequences_list[0]] + self.init_sequences_list[1]
         else:
-            self.sequences_list = None
+            self.sequences_list = []
 
         # Combos first click variables
         self.sequence_first_click = True
@@ -581,7 +581,11 @@ class tos_scene_manager_window(wdg.QMainWindow):
     # -------------------------------------
 
     def set_defaults(self):
-        pass
+
+        if self.project_path:
+            self.sequence_combo.setEnabled(True)
+        else:
+            self.sequence_combo.setEnabled(False)
 
     # -------------------------------------
     #
@@ -594,18 +598,20 @@ class tos_scene_manager_window(wdg.QMainWindow):
         # Block combos signals
         mbr_helper_block_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
 
-        self.project_wks = f"{self.os_root}/Production/"
-        cmds.workspace(self.project_wks, openWorkspace=True)
+        tos_root = mbr_util_get_tos_root()
+        project_path = f"{tos_root}/Production"
+
+        cmds.workspace(project_path, openWorkspace=True)
 
         # Sets the read button text to current workspace
-        self.workspace_read_btn.setText(self.project_wks)
+        self.workspace_read_le.setText(project_path)
 
         # Set Project Button clean up
         self.set_project_btn.setDown(False)
         self.set_project_btn.clearFocus()
 
         # Sequences Path
-        self.sequences_path = f"{self.project_wks}Sequences"
+        self.sequences_path = f"{project_path}/Sequences"
 
         # Enables the UI and fills up the fields if the workspace is set correctly
         self.sequences_list_initial = mbr_util_list_directory_contents(self.sequences_path, content_type='folders')
