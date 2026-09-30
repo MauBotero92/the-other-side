@@ -8,6 +8,22 @@ from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wrapInstance as wr
 from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg
 import maya.OpenMayaUI as omui
 
+# -------------------------------------------
+#
+#       Export Config
+#
+# -------------------------------------------
+
+__all__ = [
+    'mbr_util_get_maya_window',
+]
+
+# -------------------------------------------
+#
+#       Functions
+#
+# -------------------------------------------
+
 '''
 PURPOSE:        Get Maya Main Window and return it
 PROCEDURE:      > Save Maya Main Window on a variable

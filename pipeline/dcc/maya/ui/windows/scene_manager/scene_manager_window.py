@@ -6,7 +6,13 @@
 
 from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg, core, gui
 from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_utils import mbr_util_get_maya_window
+from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_helpers import *
+
+from TOS_Pipeline.pipeline.dcc.maya.engine.procedures.scene_manager.scene_manager_engine import *
+from TOS_Pipeline.pipeline.dcc.maya.engine.utils.maya_utils import *
+
 from TOS_Pipeline.pipeline.core.fs_utils import *
+from TOS_Pipeline.pipeline.core.naming import *
 
 import maya.cmds as cmds
 
@@ -102,9 +108,11 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         if self.project_path:
             self.sequences_path = f"{self.project_path}Sequences"
-            self.init_sequences_list = mbr_util_list_directory_contents(self.sequences_path, content_type='folders')
+            self.init_sequences_list = ['-']
+            self.init_sequences_list.append(mbr_util_list_directory_contents(self.sequences_path, content_type='folders'))
+            self.sequences_list = [self.init_sequences_list[0]] + self.init_sequences_list[1]
         else:
-            self.init_sequences_list = None
+            self.sequences_list = None
 
         # Combos first click variables
         self.sequence_first_click = True
@@ -113,6 +121,20 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         # Current workspace variable
         self.current_wks = cmds.workspace(q=True, rd=True)
+
+        # Init Variables
+        self.project_wks = None
+        self.sequences_list_initial = None
+        self.current_sequence = None
+        self.shot_number_list_initial = None
+        self.shot_number_list_sorted = None
+        self.shot_number_list = None
+        self.current_shot_number = None
+        self.current_stage = None
+        self.stages_list_initial = None
+        self.stages_list_filtered = None
+        self.stages_list = None
+        self.current_file = None
 
         # -------------------------------------
         #
@@ -228,8 +250,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         # Sequence Combo Box
         self.sequence_combo = wdg.QComboBox()
         self.sequence_combo.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
-        self.sequence_combo.addItem('-')
-        self.sequence_combo.addItems(self.init_sequences_list)
+        self.sequence_combo.addItems(self.sequences_list)
 
         # Shot Number Combo Box
         self.shot_number_combo = wdg.QComboBox()
@@ -571,7 +592,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
     def set_project_btn_pressed(self):
 
         # Block combos signals
-        util_block_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
+        mbr_helper_block_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
 
         self.project_wks = f"{self.os_root}/Production/"
         cmds.workspace(self.project_wks, openWorkspace=True)
@@ -587,7 +608,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         self.sequences_path = f"{self.project_wks}Sequences"
 
         # Enables the UI and fills up the fields if the workspace is set correctly
-        self.sequences_list_initial = list_folder_in_dir(self.sequences_path)
+        self.sequences_list_initial = mbr_util_list_directory_contents(self.sequences_path, content_type='folders')
         self.sequences_list = ['-'] + self.sequences_list_initial
 
         self.sequence_combo.setEnabled(True)
@@ -598,7 +619,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         self.set_project_btn.setEnabled(False)
 
         # Unlock combos signals
-        util_unlock_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
+        mbr_helper_unlock_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
 
     def sequence_combo_changed(self):
 
@@ -607,10 +628,10 @@ class tos_scene_manager_window(wdg.QMainWindow):
         self.shot_number_combo.setEnabled(True)
 
         # Cleans up sequence combo box if trying to use it after the first time
-        engine_clean_up_initial_index(self, 'sequence_first_click', self.sequence_combo, self.sequences_list)
+        mbr_egn_clean_initial_idx(self, 'sequence_first_click', self.sequence_combo, self.sequences_list)
 
         # Blocks signals to prevent unwanted behavior in the other combo boxes
-        util_block_signals([self.shot_number_combo, self.stage_combo])
+        mbr_helper_block_signals([self.shot_number_combo, self.stage_combo])
 
         # Combo Boxes clean up
         self.shot_number_combo.setEnabled(True)
@@ -629,9 +650,9 @@ class tos_scene_manager_window(wdg.QMainWindow):
         ]
 
         shot_number_folder_path = ''.join(shot_number_folder_path_list)
-        self.shot_number_list_initial = list_folder_in_dir(shot_number_folder_path)
+        self.shot_number_list_initial = mbr_util_list_directory_contents(shot_number_folder_path, content_type='folders')
 
-        self.shot_number_list_sorted = sorted(self.shot_number_list_initial, key=natural_key)
+        self.shot_number_list_sorted = sorted(self.shot_number_list_initial, key=mbr_util_natural_key)
         self.shot_number_list = ['-'] + self.shot_number_list_sorted
 
         if self.shot_number_combo.count() == 0:
@@ -641,7 +662,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
             self.shot_number_combo.addItems(self.shot_number_list)
 
         # Enables signals to allow normal behavior in the other combo boxes
-        util_unlock_signals([self.shot_number_combo, self.stage_combo])
+        mbr_helper_unlock_signals([self.shot_number_combo, self.stage_combo])
 
     def shot_number_combo_changed(self):
 
@@ -650,11 +671,11 @@ class tos_scene_manager_window(wdg.QMainWindow):
         self.current_stage = self.stage_combo.currentText()
 
         # Cleans up shot number combo box if trying to use it after the first time
-        engine_clean_up_initial_index(self, 'shot_number_first_click', self.shot_number_combo, self.shot_number_list)
+        mbr_egn_clean_initial_idx(self, 'shot_number_first_click', self.shot_number_combo, self.shot_number_list)
 
         if self.stage_combo.count() == 0:
             # Block signals
-            util_block_signals([self.stage_combo])
+            mbr_helper_block_signals([self.stage_combo])
 
             # Combo Boxes clean up
             self.stage_combo.setEnabled(True)
@@ -662,16 +683,6 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
             self.file_list.setEnabled(False)
             self.file_list.clear()
-
-            # Adding shot number files into the file combo box
-            shot_number_files_path_list = [
-                self.sequences_path, '/',
-                self.current_sequence, '/',
-                self.current_shot_number
-                ]
-
-            shot_number_files_path = ''.join(shot_number_files_path_list)
-            shot_number_folder_files = list_files_in_dir(shot_number_files_path)
 
             # Adding stages folders into the stages combo box
             stages_folders_path_list = [
@@ -681,7 +692,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
                 ]
 
             stages_folders_path = ''.join(stages_folders_path_list)
-            self.stages_list_initial = list_folder_in_dir(stages_folders_path)
+            self.stages_list_initial = mbr_util_list_directory_contents(stages_folders_path, content_type='folders')
 
             self.stages_list_filtered = [x for x in self.stages_list_initial if not x.startswith('.')]
             self.stages_list = ['-'] + self.stages_list_filtered
@@ -693,11 +704,11 @@ class tos_scene_manager_window(wdg.QMainWindow):
                 self.stage_combo.addItems(self.stages_list)
 
             # Unlock signals
-            util_unlock_signals([self.stage_combo])
+            mbr_helper_unlock_signals([self.stage_combo])
 
         else:
             # Block signals
-            util_block_signals([self.stage_combo])
+            mbr_helper_block_signals([self.stage_combo])
 
             # Save current stage selection
             current_stage_text = self.stage_combo.currentText()
@@ -707,7 +718,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
             # Guards against '-' stage
             if current_stage_text == '-' or not current_stage_text:
-                util_unlock_signals([self.stage_combo])
+                mbr_helper_unlock_signals([self.stage_combo])
                 return
 
             # Rebuild stage combo for the new shot number
@@ -719,7 +730,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
                 ]
 
             stage_files_path = ''.join(stage_files_path_list)
-            stage_folder_files = sorted(list_files_in_dir(stage_files_path))
+            stage_folder_files = sorted(mbr_util_list_directory_contents(stage_files_path, content_type='files'))
 
             self.stages_list_filtered = [x for x in self.stages_list_initial if not x.startswith('.')]
             self.stages_list = ['-'] + self.stages_list_filtered
@@ -736,15 +747,15 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
             self.file_list.setCurrentRow(self.file_list.count() - 1)
 
-            util_unlock_signals([self.stage_combo])
+            mbr_helper_unlock_signals([self.stage_combo])
 
     def stage_combo_changed(self):
 
-        # Intial variables
+        # Initial variables
         self.current_stage = self.stage_combo.currentText()
 
         # Cleans up stage combo box if trying to use it after the first time
-        engine_clean_up_initial_index(self, 'stage_first_click', self.stage_combo, self.stages_list)
+        mbr_egn_clean_initial_idx(self, 'stage_first_click', self.stage_combo, self.stages_list)
 
         # Stage lists
         stage_files_path_list = [
@@ -755,7 +766,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
             ]
 
         stage_files_path = ''.join(stage_files_path_list)
-        stage_folder_files = sorted(list_files_in_dir(stage_files_path))
+        stage_folder_files = sorted(mbr_util_list_directory_contents(stage_files_path, content_type='files'))
 
         # Combo Boxes clean up
         if len(stage_folder_files) == 0:
@@ -777,7 +788,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         if not self.file_list.currentItem():
             return
 
-        # Intial Variables
+        # Initial Variables
         self.current_file = self.file_list.currentItem().text()
         self.get_thumbnail()
 
@@ -813,13 +824,13 @@ class tos_scene_manager_window(wdg.QMainWindow):
         if txt_path.exists():
             with open(txt_path, 'r') as file:
                 content_artist = file.readline().strip()
-                content_framerange = file.readline().strip()
+                content_frame_range = file.readline().strip()
             if content_artist:
                 self.metadata_artist_label.setText(content_artist)
             else:
                 self.metadata_artist_label.setText('no data')
-            if content_framerange:
-                self.metadata_framerange_label.setText(content_framerange)
+            if content_frame_range:
+                self.metadata_framerange_label.setText(content_frame_range)
             else:
                 self.metadata_framerange_label.setText('no data')
         else:
@@ -838,7 +849,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         # Initial Variables
         self.current_file = self.file_list.currentItem().text()
 
-        # Sets the path that the Load button is pointing depending if the stage checkbox is checked
+        # Sets the path that the Load button is pointing depending on if the stage checkbox is checked
         file_path_list = [
             self.sequences_path, '/',
             self.current_sequence, '/',
@@ -871,7 +882,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
             # Save scene logic when user selects 'Yes'
             if is_modified_clicked == is_modified_accept_btn:
                 if not scene_name:
-                    # File Dialog asking user where does he wants the file to be saved
+                    # File Dialog asking user where does he want the file to be saved
                     path, selected_filter = wdg.QFileDialog.getSaveFileName(
                         parent=None,
                         caption='Save Maya File',
@@ -928,7 +939,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
                         f"Scene successfully saved on {path}"
                     )
 
-                    open_file(file_path)
+                    mbr_util_open_file(file_path)
                 else:
                     # Delete unknown nodes
                     delete_unknown_nodes()
@@ -946,15 +957,15 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
                     # Creates thumbnail and opens the file
                     create_thumbnail()
-                    open_file(file_path)
+                    mbr_util_open_file(file_path)
 
             # Open file when user selects 'No'
             elif is_modified_clicked == is_modified_decline_btn:
-                open_file(file_path)
+                mbr_util_open_file(file_path)
 
         # Opens file normally when the current scene is already saved
         else:
-            open_file(file_path)
+            mbr_util_open_file(file_path)
 
 # -------------------------------------
 #
