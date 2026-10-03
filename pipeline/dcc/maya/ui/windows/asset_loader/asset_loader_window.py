@@ -1,5 +1,19 @@
-from TOS_Pipeline.pipeline.dcc.maya.qt_compat import wdg, core, gui
-from TOS_Pipeline.pipeline.dcc.maya.qt_utils import mbr_util_get_maya_window
+# -------------------------------------
+#
+#       Import Modules
+#
+# -------------------------------------
+
+from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg, core, gui
+from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_utils import mbr_util_get_maya_window
+from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_helpers import *
+
+from TOS_Pipeline.pipeline.dcc.maya.engine.utils.maya_utils import *
+
+from TOS_Pipeline.pipeline.core.fs_utils import *
+from TOS_Pipeline.pipeline.core.naming import *
+
+import maya.cmds as cmds
 
 # -------------------------------------
 
@@ -56,9 +70,62 @@ class tos_asset_loader_window(wdg.QMainWindow):
 
         # -------------------------------------
         #
-        #       Variable Helpers
+        #       Widget Variables
         #
         # -------------------------------------
+
+        self.title_frame = None
+        self.title_label = None
+        self.project_frame = None
+        self.project_label = None
+
+        self.wks_read_le = None
+        self.set_folder_btn = None
+        self.lvl_01_combo = None
+        self.lvl_02_combo = None
+        self.lvl_03_combo = None
+        self.lvl_04_combo = None
+        self.lvl_05_combo = None
+
+        self.file_list = None
+
+        self.namespace_le = None
+        self.quantity_spin = None
+        self.reference_radio_btn = None
+        self.import_radio_btn = None
+        self.open_file_radio_btn = None
+
+        self.thumbnail_label = None
+        self.metadata_date_label = None
+        self.metadata_size_label = None
+
+        self.load_btn = None
+
+        # -------------------------------------
+        #
+        #       Initialization Variables
+        #
+        # -------------------------------------
+
+        # Variables
+        self.init_lvl_01_folder_list = None
+        self.lvl_01_folder_list = None
+        self.lvl_01_text, self.lvl_02_text, self.lvl_03_text = None, None, None
+        self.lvl_04_text, self.lvl_05_text = None, None
+
+        # Init Assets List
+        self.project_path = mbr_util_get_tos_path()
+
+        if self.project_path:
+            self.assets_path = f"{self.project_path}Assets"
+        else:
+            self.assets_path = None
+
+        # Current workspace variable
+        if self.assets_path:
+            self.current_wks = cmds.workspace(q=True, rd=True)
+        else:
+            self.current_wks = 'Project is not set'
 
         # -------------------------------------
         #
@@ -123,6 +190,9 @@ class tos_asset_loader_window(wdg.QMainWindow):
         self.create_connections()
         self.set_defaults()
 
+        self.lvl_combos = [self.lvl_01_combo, self.lvl_02_combo, self.lvl_03_combo, self.lvl_04_combo, self.lvl_05_combo]
+        self.lvl_texts = [self.lvl_01_text, self.lvl_02_text, self.lvl_03_text, self.lvl_04_text, self.lvl_05_text]
+
     # -------------------------------------
     #
     #       Create Widgets
@@ -162,12 +232,11 @@ class tos_asset_loader_window(wdg.QMainWindow):
         # -------------------------------------
 
         # Workspace LineEdit
-        self.wks_read_le = wdg.QLineEdit()
+        self.wks_read_le = wdg.QLineEdit(self.current_wks)
         self.wks_read_le.setStyleSheet(self.wks_read_style)
         self.wks_read_le.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
         self.wks_read_le.setFixedHeight(self.wks_height)
         self.wks_read_le.setEnabled(False)
-        # self.wks_read_le.setText()
 
         # Set Folder Button
         self.set_folder_btn = wdg.QPushButton('Set')
@@ -530,7 +599,22 @@ class tos_asset_loader_window(wdg.QMainWindow):
     # -------------------------------------
 
     def create_connections(self):
-        pass
+
+        self.set_folder_btn.clicked.connect(self.set_folder_btn_clicked)
+
+        self.lvl_01_combo.currentIndexChanged.connect(self.lvl_01_combo_changed)
+        self.lvl_02_combo.currentIndexChanged.connect(self.lvl_02_combo_changed)
+        self.lvl_03_combo.currentIndexChanged.connect(self.lvl_03_combo_changed)
+        self.lvl_04_combo.currentIndexChanged.connect(self.lvl_04_combo_changed)
+        self.lvl_05_combo.currentIndexChanged.connect(self.lvl_05_combo_changed)
+
+        self.file_list.currentRowChanged.connect(self.file_list_changed)
+
+        self.reference_radio_btn.clicked.connect(self.reference_radio_btn_clicked)
+        self.import_radio_btn.clicked.connect(self.import_radio_btn_clicked)
+        self.open_file_radio_btn.clicked.connect(self.open_file_radio_btn_clicked)
+
+        self.load_btn.clicked.connect(self.load_btn_clicked)
 
     # -------------------------------------
     #
@@ -539,7 +623,30 @@ class tos_asset_loader_window(wdg.QMainWindow):
     # -------------------------------------
 
     def set_defaults(self):
-        pass
+
+        # Checks if the assets path is valid or not
+        if self.assets_path:
+
+            # Enables combo boxes if the assets path is valid
+            self.lvl_01_combo.setEnabled(True)
+            self.lvl_02_combo.setEnabled(False)
+            self.lvl_03_combo.setEnabled(False)
+            self.lvl_04_combo.setEnabled(False)
+            self.lvl_05_combo.setEnabled(False)
+
+            # Fills first combo box
+            self.init_lvl_01_folder_list = ['-']
+            self.init_lvl_01_folder_list.append(mbr_util_list_directory_contents(self.assets_path, content_type='folders'))
+            self.lvl_01_folder_list = [self.init_lvl_01_folder_list[0]] + self.init_lvl_01_folder_list[1]
+            self.lvl_01_combo.addItems(self.lvl_01_folder_list)
+
+        else:
+            self.lvl_01_combo.setEnabled(False)
+            self.lvl_02_combo.setEnabled(False)
+            self.lvl_03_combo.setEnabled(False)
+            self.lvl_04_combo.setEnabled(False)
+            self.lvl_05_combo.setEnabled(False)
+
 
     # -------------------------------------
     #
@@ -547,13 +654,384 @@ class tos_asset_loader_window(wdg.QMainWindow):
     #
     # -------------------------------------
 
+    def set_folder_btn_clicked(self):
+
+        # Block combos signals
+        mbr_helper_block_signals(self.lvl_combos)
+
+        tos_root = mbr_util_get_tos_root()
+
+        if tos_root:
+            project_path = f"{tos_root}/Production"
+        else:
+            return
+
+        # Set project to project path
+        cmds.workspace(project_path, openWorkspace=True)
+
+        # Sets the read button text to current workspace
+        self.wks_read_le.setText(project_path)
+
+        # Sets Assets Path
+        self.assets_path = f"{project_path}/Assets"
+
+        # Enables combo boxes if the assets path is valid
+        self.lvl_01_combo.setEnabled(True)
+        self.lvl_02_combo.setEnabled(False)
+        self.lvl_03_combo.setEnabled(False)
+        self.lvl_04_combo.setEnabled(False)
+        self.lvl_05_combo.setEnabled(False)
+
+        # Fills first combo box
+        self.init_lvl_01_folder_list = ['-']
+        self.init_lvl_01_folder_list.append(mbr_util_list_directory_contents(self.assets_path, content_type='folders'))
+        self.lvl_01_folder_list = [self.init_lvl_01_folder_list[0]] + self.init_lvl_01_folder_list[1]
+        self.lvl_01_combo.addItems(self.lvl_01_folder_list)
+
+        # Disables Set Project Button
+        self.set_folder_btn.setEnabled(False)
+
+        # Unlock combos signals
+        mbr_helper_unlock_signals(self.lvl_combos)
+
+    def lvl_01_combo_changed(self):
+
+        # Preventing unwanted changes on combo boxes
+        mbr_helper_block_signals(self.lvl_combos[1:])
+
+        # Function variables
+        self.lvl_01_text = self.lvl_01_combo.currentText()
+        for item in self.lvl_texts[1:]:
+            item = None
+
+        # Clear Combos
+        mbr_helper_clear_combos(self.lvl_combos[1:])
+        self.file_list.clear()
+
+        # Adding folders on the first combo box
+        self.lvl_01_dir = f"{self.wks_read_le.text()}Assets/{self.lvl_01_text}"
+        lvl_01_list = mbr_util_list_directory_contents(self.lvl_01_dir, content_type='folders')
+        lvl_01_dirs_filtered = [x for x in lvl_01_list if not x.startswith('.')]
+        lvl_01_dirs_sorted = sorted(lvl_01_dirs_filtered, key=lambda x: x.replace('_', ' ').lower())
+
+        if len(lvl_01_dirs_sorted) > 0:
+            self.lvl_02_combo.addItem('-')
+            self.lvl_02_combo.addItems(lvl_01_dirs_sorted)
+
+            # Settings Defaults
+            self.lvl_02_combo.setEnabled(True)
+            mbr_helper_set_disabled(self.lvl_combos[2:])
+
+        # Adding files on the file combo box
+        lvl_01_files = mbr_util_list_directory_contents(self.lvl_01_dir, content_type='files')
+        lvl_01_files_filtered = []
+
+        for item in lvl_01_files:
+            if item.endswith(('.mb', '.ma')):
+                lvl_01_files_filtered.append(item)
+
+        # Combo Boxes clean up
+        if len(lvl_01_files) == 0:
+            self.file_list.setEnabled(False)
+        else:
+            self.file_list.setEnabled(True)
+            self.file_list.addItems(lvl_01_files_filtered)
+
+        # Reactivating signals on combo boxes
+        mbr_helper_unlock_signals(self.lvl_combos[1:])
+
+    def lvl_02_combo_changed(self):
+
+        # Preventing unwanted changes on combo boxes
+        mbr_helper_block_signals(self.lvl_combos[2:])
+
+        # Function variables
+        self.lvl_02_text = self.lvl_02_combo.currentText()
+        for item in self.lvl_texts[2:]:
+            item = None
+
+        # Clear Combos
+        mbr_helper_clear_combos(self.lvl_combos[2:])
+        self.file_list.clear()
+
+        # Adding folders on the first combo box
+        self.lvl_02_dir = f"{self.lvl_01_dir}/{self.lvl_02_text}"
+        lvl_02_list = mbr_util_list_directory_contents(self.lvl_02_dir, content_type='folders')
+        lvl_02_dirs_filtered = [x for x in lvl_02_list if not x.startswith('.')]
+        lvl_02_dirs_sorted = sorted(lvl_02_dirs_filtered, key=lambda x: x.replace('_', ' ').lower())
+
+        if len(lvl_02_dirs_sorted) > 0:
+            self.lvl_03_combo.addItem('-')
+            self.lvl_03_combo.addItems(lvl_02_dirs_sorted)
+
+            # Settings Defaults
+            self.lvl_03_combo.setEnabled(True)
+            mbr_helper_set_disabled(self.lvl_combos[3:])
+
+        # Adding files on the file combo box
+        lvl_02_files = mbr_util_list_directory_contents(self.lvl_02_dir, content_type='files')
+        lvl_02_files_filtered = []
+
+        for item in lvl_02_files:
+            if item.endswith(('.mb', '.ma')):
+                lvl_02_files_filtered.append(item)
+
+        # Combo Boxes clean up
+        if len(lvl_02_files) == 0:
+            self.file_list.setEnabled(False)
+        else:
+            self.file_list.setEnabled(True)
+            self.file_list.addItems(lvl_02_files_filtered)
+
+        # Reactivating signals on combo boxes
+        mbr_helper_unlock_signals(self.lvl_combos[2:])
+
+    def lvl_03_combo_changed(self):
+
+        # Preventing unwanted changes on combo boxes
+        mbr_helper_block_signals(self.lvl_combos[3:])
+
+        # Function variables
+        self.lvl_03_text = self.lvl_03_combo.currentText()
+        for item in self.lvl_texts[3:]:
+            item = None
+
+        # Clear Combos
+        mbr_helper_clear_combos(self.lvl_combos[3:])
+        self.file_list.clear()
+
+        # Adding folders on the first combo box
+        self.lvl_03_dir = f"{self.lvl_02_dir}/{self.lvl_03_text}"
+        lvl_03_list = mbr_util_list_directory_contents(self.lvl_03_dir, content_type='folders')
+        lvl_03_dirs_filtered = [x for x in lvl_03_list if not x.startswith('.')]
+        lvl_03_dirs_sorted = sorted(lvl_03_dirs_filtered, key=lambda x: x.replace('_', ' ').lower())
+
+        if len(lvl_03_dirs_sorted) > 0:
+            self.lvl_04_combo.addItem('-')
+            self.lvl_04_combo.addItems(lvl_02_dirs_sorted)
+
+            # Settings Defaults
+            self.lvl_04_combo.setEnabled(True)
+            mbr_helper_set_disabled(self.lvl_combos[4:])
+
+        # Adding files on the file combo box
+        lvl_03_files = mbr_util_list_directory_contents(self.lvl_03_dir, content_type='files')
+        lvl_03_files_filtered = []
+
+        for item in lvl_03_files:
+            if item.endswith(('.mb', '.ma')):
+                lvl_03_files_filtered.append(item)
+
+        # Combo Boxes clean up
+        if len(lvl_03_files) == 0:
+            self.file_list.setEnabled(False)
+        else:
+            self.file_list.setEnabled(True)
+            self.file_list.addItems(lvl_03_files_filtered)
+
+        # Reactivating signals on combo boxes
+        mbr_helper_unlock_signals(self.lvl_combos[3:])
+
+
+    def lvl_04_combo_changed(self):
+
+        # Preventing unwanted changes on combo boxes
+        mbr_helper_block_signals(self.lvl_combos[4:])
+
+        # Function variables
+        self.lvl_04_text = self.lvl_04_combo.currentText()
+        for item in self.lvl_texts[4:]:
+            item = None
+
+        # Clear Combos
+        mbr_helper_clear_combos(self.lvl_combos[4:])
+        self.file_list.clear()
+
+        # Adding folders on the first combo box
+        self.lvl_04_dir = f"{self.lvl_03_dir}/{self.lvl_04_text}"
+        lvl_04_list = mbr_util_list_directory_contents(self.lvl_04_dir, content_type='folders')
+        lvl_04_dirs_filtered = [x for x in lvl_04_list if not x.startswith('.')]
+        lvl_04_dirs_sorted = sorted(lvl_04_dirs_filtered, key=lambda x: x.replace('_', ' ').lower())
+
+        if len(lvl_04_dirs_sorted) > 0:
+            self.lvl_05_combo.addItem('-')
+            self.lvl_05_combo.addItems(lvl_02_dirs_sorted)
+
+            # Settings Defaults
+            self.lvl_05_combo.setEnabled(True)
+            mbr_helper_set_disabled(self.lvl_combos[5:])
+
+        # Adding files on the file combo box
+        lvl_04_files = mbr_util_list_directory_contents(self.lvl_04_dir, content_type='files')
+        lvl_04_files_filtered = []
+
+        for item in lvl_04_files:
+            if item.endswith(('.mb', '.ma')):
+                lvl_04_files_filtered.append(item)
+
+        # Combo Boxes clean up
+        if len(lvl_04_files) == 0:
+            self.file_list.setEnabled(False)
+        else:
+            self.file_list.setEnabled(True)
+            self.file_list.addItems(lvl_04_files_filtered)
+
+        # Reactivating signals on combo boxes
+        mbr_helper_unlock_signals(self.lvl_combos[4:])
+
+    def lvl_05_combo_changed(self):
+
+        # Preventing unwanted changes on combo boxes
+        mbr_helper_block_signals(self.lvl_combos[5:])
+
+        # Function variables
+        self.lvl_05_text = self.lvl_05_combo.currentText()
+
+        # Clear Combos
+        self.file_list.clear()
+
+        # Adding files on the file combo box
+        lvl_05_files = mbr_util_list_directory_contents(self.lvl_05_dir, content_type='files')
+        lvl_05_files_filtered = []
+
+        for item in lvl_05_files:
+            if item.endswith(('.mb', '.ma')):
+                lvl_05_files_filtered.append(item)
+
+        # Combo Boxes clean up
+        if len(lvl_05_files) == 0:
+            self.file_list.setEnabled(False)
+        else:
+            self.file_list.setEnabled(True)
+            self.file_list.addItems(lvl_05_files_filtered)
+
+        # Reactivating signals on combo boxes
+        mbr_helper_unlock_signals(self.lvl_combos[5:])
+
+    def file_list_changed(self):
+
+        if not self.file_list.currentItem():
+            return
+
+        # Initial Variables
+        self.current_file = self.file_list.currentItem().text()
+        self.get_thumbnail()
+
+        # File Path
+        if self.lvl_01_text is not None and self.lvl_02_text is None:
+            file_path = f"{self.lvl_01_dir}/{self.current_file}"
+
+        elif self.lvl_02_text is not None and self.lvl_03_text is None:
+            file_path = f"{self.lvl_02_dir}/{self.current_file}"
+
+        elif self.lvl_03_text is not None and self.lvl_04_text is None:
+            file_path = f"{self.lvl_03_dir}/{self.current_file}"
+
+        elif self.lvl_04_text is not None and self.lvl_05_text is None:
+            file_path = f"{self.lvl_04_dir}/{self.current_file}"
+
+        elif self.lvl_05_text is not None:
+            file_path = f"{self.lvl_05_dir}/{self.current_file}"
+
+        # Fill Namespace
+        current_file = self.file_list.currentItem().text()
+        file_name_ext_index = current_file.find('_')
+        self.namespace_le.setText(current_file[:file_name_ext_index].upper())
+
+    def reference_radio_btn_clicked(self):
+
+        self.namespace_le.setReadOnly(False)
+        self.namespace_le.setStyleSheet("")
+
+        # Fill Namespace
+        current_file = self.file_list.currentItem().text()
+        file_name_ext_index = current_file.find('.')
+        self.namespace_le.setText(current_file[:file_name_ext_index].upper())
+
+    def import_radio_btn_clicked(self):
+
+        self.namespace_le.clear()
+        self.namespace_le.setReadOnly(True)
+        self.namespace_le.setStyleSheet("QLineEdit {background-color: #3d3d3d;}")
+
+    def open_file_radio_btn_clicked(self):
+
+        self.namespace_le.clear()
+        self.namespace_le.setReadOnly(True)
+        self.namespace_le.setStyleSheet("QLineEdit {background-color: #3d3d3d;}")
+
+    def load_btn_clicked(self):
+        pass
+
+        # # Initial Variables
+        # self.current_file = self.file_list.currentItem().text()
+        # asset_quantity = self.quantity_spin.value()
+        #
+        # # Declares the maya file type
+        # if self.current_file.endswith('.ma'):
+        #     maya_file_type = 'mayaAscii'
+        # elif self.current_file.endswith('.mb'):
+        #     maya_file_type = 'mayaBinary'
+        #
+        # # Get File Path
+        # if self.lvl_01_text != None and self.lvl_02_text == None:
+        #     file_path = f"{self.lvl_01_dir}/{self.current_file}"
+        #
+        # elif self.lvl_02_text != None and self.lvl_03_text == None:
+        #     file_path = f"{self.lvl_02_dir}/{self.current_file}"
+        #
+        # elif self.lvl_03_text != None and self.lvl_04_text == None:
+        #     file_path = f"{self.lvl_03_dir}/{self.current_file}"
+        #
+        # elif self.lvl_04_text != None and self.lvl_05_text == None:
+        #     file_path = f"{self.lvl_04_dir}/{self.current_file}"
+        #
+        # elif self.lvl_05_text != None and self.lvl_06_text == None:
+        #     file_path = f"{self.lvl_05_dir}/{self.current_file}"
+        #
+        # elif self.lvl_06_text != None and self.lvl_07_text == None:
+        #     file_path = f"{self.lvl_06_dir}/{self.current_file}"
+        #
+        # elif self.lvl_07_text != None:
+        #     file_path = f"{self.lvl_07_dir}/{self.current_file}"
+        #
+        # # Open file depending on which radio button is checked
+        # if self.reference_radio_btn.isChecked():
+        #     for asset in range(asset_quantity):
+        #         open_file_reference(file_path, maya_file_type, self.namespace_le.text())
+        #
+        # elif self.import_radio_btn.isChecked():
+        #     for asset in range(asset_quantity):
+        #         open_file_import(file_path, maya_file_type)
+        #
+        # elif self.open_file_radio_btn.isChecked():
+        #     for asset in range(asset_quantity):
+        #         open_file_local(file_path, maya_file_type)
+        #
+        # # Block signals of combo boxes
+        # util_block_signals(self.lvl_combos)
+        #
+        # # Reset Variables to None
+        # for item in self.lvl_texts:
+        #     item = None
+        #
+        # # Clear Combo Boxes and disable them
+        # util_clear_combos(self.lvl_combos[1:])
+        # util_set_disabled(self.lvl_combos[1:])
+        #
+        # # Set first combo box to first index
+        # self.lvl_01_combo.setCurrentIndex(0)
+        #
+        # # Reactivating signals on combo boxes
+        # util_unlock_signals(self.lvl_combos)
+
 # -------------------------------------
 #
 #       Run Function
 #
 # -------------------------------------
 
-def asset_loader_run():
+def run():
 
     global MAIN_WINDOW
     if not MAIN_WINDOW or not cmds.window(q=True, exists=True):
