@@ -1,5 +1,20 @@
-from TOS_Pipeline.pipeline.dcc.maya.qt_compat import wdg, core, gui
-from TOS_Pipeline.pipeline.dcc.maya.qt_utils import mbr_util_get_maya_window
+# -------------------------------------
+#
+#       Import Modules
+#
+# -------------------------------------
+
+from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg, core, gui
+from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_utils import mbr_util_get_maya_window
+from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_helpers import *
+
+from TOS_Pipeline.pipeline.dcc.maya.engine.procedures.shot_creator.shot_creator_engine import *
+from TOS_Pipeline.pipeline.dcc.maya.engine.utils.maya_utils import *
+
+from TOS_Pipeline.pipeline.core.fs_utils import *
+from TOS_Pipeline.pipeline.core.naming import *
+
+import maya.cmds as cmds
 
 # -------------------------------------
 
@@ -56,9 +71,79 @@ class tos_shot_creator_window(wdg.QMainWindow):
 
         # -------------------------------------
         #
+        #       Widget Variables
+        #
+        # -------------------------------------
+
+        self.title_frame = None
+        self.title_label = None
+        self.project_frame = None
+        self.project_label = None
+
+        self.wks_read_le = None
+        self.set_project_btn = None
+        self.new_shot_check = None
+
+        self.from_current_radial_btn = None
+        self.from_file_radial_btn = None
+        self.from_published_radial_btn = None
+
+        self.sequence_combo = None
+        self.shot_number_combo = None
+        self.shot_number_le = None
+        self.stage_combo = None
+
+        self.file_le = None
+        self.from_file_le = None
+        self.from_file_browse_btn = None
+
+        self.create_shot_btn = None
+
+        self.published_scene_grp = None
+        self.from_file_grp = None
+
+        # -------------------------------------
+        #
         #       Variable Helpers
         #
         # -------------------------------------
+
+        self.project_path = mbr_util_get_tos_path()
+
+        if self.project_path:
+            self.sequences_path = f"{self.project_path}Sequences"
+        else:
+            self.sequences_path = None
+
+        if self.sequences_path:
+            self.current_wks = cmds.workspace(q=True, rd=True)
+        else:
+            self.current_wks = 'Project is not set'
+
+        # Combos first click variables
+        self.sequence_first_click = True
+        self.shot_number_first_click = True
+        self.stage_first_click = True
+
+        self.sequences_list = [
+            ['T100', 'Seq1'],
+            ['T200', 'Seq2'],
+            ['T300', 'Seq3'],
+            ['T400', 'Seq4'],
+            ['T500', 'Seq5'],
+            ['T600', 'Seq6'],
+            ['T700', 'Seq7']
+        ]
+
+        self.stages_list = [
+            ['Layout', 'layout'],
+            ['Animation', 'anim'],
+            ['Lighting', 'shading']
+        ]
+
+        self.cur_sequence = None
+        self.cur_shot_number = None
+        self.cur_stage = None
 
         # -------------------------------------
         #
@@ -181,11 +266,11 @@ class tos_shot_creator_window(wdg.QMainWindow):
         # -------------------------------------
 
         # Workspace LineEdit
-        self.wks_read_btn = wdg.QLineEdit()
-        self.wks_read_btn.setStyleSheet(self.workspace_read_style)
-        self.wks_read_btn.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
-        self.wks_read_btn.setFixedHeight(self.wks_height)
-        self.wks_read_btn.setEnabled(False)
+        self.wks_read_le = wdg.QLineEdit(self.current_wks)
+        self.wks_read_le.setStyleSheet(self.workspace_read_style)
+        self.wks_read_le.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
+        self.wks_read_le.setFixedHeight(self.wks_height)
+        self.wks_read_le.setEnabled(False)
 
         # Set Project Button
         self.set_project_btn = wdg.QPushButton('Set')
@@ -446,7 +531,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
         project_lyt.addWidget(self.project_label)
 
         # Set Project Widgets
-        set_project_lyt.addWidget(self.wks_read_btn)
+        set_project_lyt.addWidget(self.wks_read_le)
         set_project_lyt.addWidget(self.set_project_btn)
 
         # Create Options Widgets
@@ -482,7 +567,21 @@ class tos_shot_creator_window(wdg.QMainWindow):
     # -------------------------------------
 
     def create_connections(self):
-        pass
+
+        self.set_project_btn.clicked.connect(self.set_project_btn_clicked)
+
+        self.new_shot_check.toggled.connect(self.new_shot_check_toggled)
+        self.from_current_radial_btn.clicked.connect(self.from_current_radial_btn_clicked)
+        self.from_file_radial_btn.clicked.connect(self.from_file_radial_btn_clicked)
+        self.from_file_browse_btn.clicked.connect(self.from_file_browse_btn_clicked)
+        self.from_published_radial_btn.clicked.connect(self.from_published_radial_btn_clicked)
+
+        self.sequence_combo.currentIndexChanged.connect(self.sequence_combo_changed)
+        self.shot_number_combo.currentIndexChanged.connect(self.shot_number_combo_changed)
+        self.shot_number_le.editingFinished.connect(self.shot_number_le_edited)
+        self.stage_combo.currentIndexChanged.connect(self.stage_combo_changed)
+
+        self.create_shot_btn.clicked.connect(self.create_shot_btn_clicked)
 
     # -------------------------------------
     #
@@ -491,7 +590,29 @@ class tos_shot_creator_window(wdg.QMainWindow):
     # -------------------------------------
 
     def set_defaults(self):
-        pass
+
+        if not self.sequences_path:
+
+            self.sequence_combo.setEnabled(False)
+            self.shot_number_combo.setEnabled(False)
+            self.stage_combo.setEnabled(False)
+            self.file_le.setEnabled(False)
+
+        self.published_scene_grp.setVisible(False)
+        self.from_file_grp.setVisible(False)
+
+        if self.sequences_path:
+            self.set_project_btn.setEnabled(False)
+        else:
+            self.set_project_btn.setEnabled(True)
+
+        self.shot_number_combo.setVisible(True)
+        self.shot_number_le.setVisible(False)
+
+        self.shot_number_le.setEnabled(False)
+
+        self.create_shot_btn.setEnabled(False)
+        self.create_shot_btn.setStyleSheet(self.btn_style_disabled)
 
     # -------------------------------------
     #
@@ -499,13 +620,156 @@ class tos_shot_creator_window(wdg.QMainWindow):
     #
     # -------------------------------------
 
+    def set_project_btn_clicked(self):
+
+        # Block combos signals
+        mbr_helper_block_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
+
+        tos_root = mbr_util_get_tos_root()
+        project_path = f"{tos_root}/Production"
+
+        cmds.workspace(project_path, openWorkspace=True)
+
+        # Sets the read button text to current workspace
+        self.wks_read_le.setText(project_path)
+
+        # Set Project Button clean up
+        self.set_project_btn.setDown(False)
+        self.set_project_btn.clearFocus()
+
+        # Sequences Path
+        self.sequences_path = f"{project_path}/Sequences"
+
+        self.sequence_combo.setEnabled(True)
+        self.sequence_combo.clear()
+
+        for item in self.sequences_list:
+            self.sequence_combo.addItem(item[0], item[1])
+        self.sequence_combo.insertItem(0, '-')
+        self.sequence_combo.setCurrentIndex(0)
+
+        # Disables Set Project Button
+        self.set_project_btn.setEnabled(False)
+
+        mbr_helper_unlock_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
+
+    def new_shot_check_toggled(self):
+
+        if checked:
+            self.shot_number_le.clear()
+            self.shot_number_combo.setVisible(False)
+            self.shot_number_le.setVisible(True)
+        else:
+            self.shot_number_combo.setCurrentIndex(0)
+            self.shot_number_combo.setVisible(True)
+            self.shot_number_le.setVisible(False)
+
+        self.create_shot_btn.setEnabled(False)
+        self.create_shot_btn.setStyleSheet(self.btn_style_disabled)
+
+    def from_current_radial_btn_clicked(self):
+
+        self.published_scene_grp.setVisible(False)
+        self.from_file_grp.setVisible(False)
+        self.new_shot_check.setEnabled(True)
+
+        screen = wdg.QApplication.primaryScreen()
+        screen_height = screen.availableGeometry().height()
+
+        if screen_height < 720:
+            initial_height = int(screen_height * 0.85)
+        else:
+            initial_height = 600
+
+        self.setMinimumSize(460, min(initial_height, int(screen_height * 0.5)))
+        self.resize(460, initial_height)
+
+    def from_file_radial_btn_clicked(self):
+
+        if self.from_file_le.text() == '':
+            self.create_shot_btn.setEnabled(False)
+            self.create_shot_btn.setStyleSheet(self.btn_style_disabled)
+
+        self.from_file_grp.setVisible(True)
+        self.published_scene_grp.setVisible(False)
+        self.new_shot_check.setEnabled(True)
+
+        screen = wdg.QApplication.primaryScreen()
+        screen_height = screen.availableGeometry().height()
+
+        if screen_height < 720:
+            initial_height = int(screen_height * 0.85)
+        else:
+            initial_height = 680
+
+        self.setMinimumSize(460, min(initial_height, int(screen_height * 0.5)))
+        self.resize(460, initial_height)
+
+    def from_file_browse_btn_clicked(self):
+
+        dialog = wdg.QFileDialog(parent=None, caption='Select File')
+        dialog.setNameFilters(['Maya ASCII (*.ma)', 'Maya Binary (*.mb)'])
+        dialog.setAcceptMode(wdg.QFileDialog.AcceptSave)
+        dialog.setLabelText(wdg.QFileDialog.Accept, 'Select File')
+        dialog.setOption(wdg.QFileDialog.DontConfirmOverwrite, True)
+
+        if dialog.exec_():
+            self.path = dialog.selectedFiles()[0]
+            self.from_file_le.setText(self.path)
+
+        self.create_shot_btn.setEnabled(True)
+        self.create_shot_btn.setStyleSheet(self.btn_style)
+
+    def from_published_radial_btn_clicked(self):
+
+        self.published_scene_grp.setVisible(True)
+        self.from_file_grp.setVisible(False)
+        self.new_shot_check.setChecked(False)
+        self.new_shot_check.setEnabled(False)
+
+        screen = wdg.QApplication.primaryScreen()
+        screen_height = screen.availableGeometry().height()
+
+        if screen_height < 720:
+            initial_height = int(screen_height * 0.85)
+        else:
+            initial_height = 680
+
+        self.setMinimumSize(460, min(initial_height, int(screen_height * 0.5)))
+        self.resize(460, initial_height)
+
+    def sequence_combo_changed(self):
+        pass
+
+    def shot_number_combo_changed(self):
+        pass
+
+    def shot_number_le_edited(self):
+
+        if not self.stage_combo.isEnabled():
+            self.stage_combo.setEnabled(True)
+            for item in self.stages_list:
+                self.stage_combo.addItem(item[0], item[1])
+
+
+        self.create_shot_btn.setEnabled(True)
+        self.create_shot_btn.setStyleSheet(self.btn_style)
+
+    def stage_combo_changed(self):
+
+        # Intial variables
+        self.current_stage = self.stage_combo.currentData()
+
+    def create_shot_btn_clicked(self):
+        pass
+
 # -------------------------------------
 #
 #       Run Function
 #
 # -------------------------------------
 
-def shot_creator_run():
+def run():
 
     global MAIN_WINDOW
     if not MAIN_WINDOW or not cmds.window(q=True, exists=True):

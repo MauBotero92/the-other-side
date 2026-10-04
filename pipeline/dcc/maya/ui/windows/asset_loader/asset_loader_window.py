@@ -110,8 +110,13 @@ class tos_asset_loader_window(wdg.QMainWindow):
         # Variables
         self.init_lvl_01_folder_list = None
         self.lvl_01_folder_list = None
+        self.current_file = None
+
         self.lvl_01_text, self.lvl_02_text, self.lvl_03_text = None, None, None
         self.lvl_04_text, self.lvl_05_text = None, None
+
+        self.lvl_01_dir, self.lvl_02_dir, self.lvl_03_dir = None, None, None
+        self.lvl_04_dir, self.lvl_05_dir = None, None
 
         # Init Assets List
         self.project_path = mbr_util_get_tos_path()
@@ -808,7 +813,7 @@ class tos_asset_loader_window(wdg.QMainWindow):
 
         if len(lvl_03_dirs_sorted) > 0:
             self.lvl_04_combo.addItem('-')
-            self.lvl_04_combo.addItems(lvl_02_dirs_sorted)
+            self.lvl_04_combo.addItems(lvl_03_dirs_sorted)
 
             # Settings Defaults
             self.lvl_04_combo.setEnabled(True)
@@ -855,7 +860,7 @@ class tos_asset_loader_window(wdg.QMainWindow):
 
         if len(lvl_04_dirs_sorted) > 0:
             self.lvl_05_combo.addItem('-')
-            self.lvl_05_combo.addItems(lvl_02_dirs_sorted)
+            self.lvl_05_combo.addItems(lvl_04_dirs_sorted)
 
             # Settings Defaults
             self.lvl_05_combo.setEnabled(True)
@@ -915,23 +920,7 @@ class tos_asset_loader_window(wdg.QMainWindow):
 
         # Initial Variables
         self.current_file = self.file_list.currentItem().text()
-        self.get_thumbnail()
-
-        # File Path
-        if self.lvl_01_text is not None and self.lvl_02_text is None:
-            file_path = f"{self.lvl_01_dir}/{self.current_file}"
-
-        elif self.lvl_02_text is not None and self.lvl_03_text is None:
-            file_path = f"{self.lvl_02_dir}/{self.current_file}"
-
-        elif self.lvl_03_text is not None and self.lvl_04_text is None:
-            file_path = f"{self.lvl_03_dir}/{self.current_file}"
-
-        elif self.lvl_04_text is not None and self.lvl_05_text is None:
-            file_path = f"{self.lvl_04_dir}/{self.current_file}"
-
-        elif self.lvl_05_text is not None:
-            file_path = f"{self.lvl_05_dir}/{self.current_file}"
+        # self.get_thumbnail()
 
         # Fill Namespace
         current_file = self.file_list.currentItem().text()
@@ -961,69 +950,64 @@ class tos_asset_loader_window(wdg.QMainWindow):
         self.namespace_le.setStyleSheet("QLineEdit {background-color: #3d3d3d;}")
 
     def load_btn_clicked(self):
-        pass
 
-        # # Initial Variables
-        # self.current_file = self.file_list.currentItem().text()
-        # asset_quantity = self.quantity_spin.value()
+        # Initial Variables
+        self.current_file = self.file_list.currentItem().text()
+        asset_quantity = self.quantity_spin.value()
         #
-        # # Declares the maya file type
-        # if self.current_file.endswith('.ma'):
-        #     maya_file_type = 'mayaAscii'
-        # elif self.current_file.endswith('.mb'):
-        #     maya_file_type = 'mayaBinary'
-        #
-        # # Get File Path
-        # if self.lvl_01_text != None and self.lvl_02_text == None:
-        #     file_path = f"{self.lvl_01_dir}/{self.current_file}"
-        #
-        # elif self.lvl_02_text != None and self.lvl_03_text == None:
-        #     file_path = f"{self.lvl_02_dir}/{self.current_file}"
-        #
-        # elif self.lvl_03_text != None and self.lvl_04_text == None:
-        #     file_path = f"{self.lvl_03_dir}/{self.current_file}"
-        #
-        # elif self.lvl_04_text != None and self.lvl_05_text == None:
-        #     file_path = f"{self.lvl_04_dir}/{self.current_file}"
-        #
-        # elif self.lvl_05_text != None and self.lvl_06_text == None:
-        #     file_path = f"{self.lvl_05_dir}/{self.current_file}"
-        #
-        # elif self.lvl_06_text != None and self.lvl_07_text == None:
-        #     file_path = f"{self.lvl_06_dir}/{self.current_file}"
-        #
-        # elif self.lvl_07_text != None:
-        #     file_path = f"{self.lvl_07_dir}/{self.current_file}"
-        #
-        # # Open file depending on which radio button is checked
-        # if self.reference_radio_btn.isChecked():
-        #     for asset in range(asset_quantity):
-        #         open_file_reference(file_path, maya_file_type, self.namespace_le.text())
-        #
-        # elif self.import_radio_btn.isChecked():
-        #     for asset in range(asset_quantity):
-        #         open_file_import(file_path, maya_file_type)
-        #
-        # elif self.open_file_radio_btn.isChecked():
-        #     for asset in range(asset_quantity):
-        #         open_file_local(file_path, maya_file_type)
-        #
-        # # Block signals of combo boxes
-        # util_block_signals(self.lvl_combos)
-        #
-        # # Reset Variables to None
-        # for item in self.lvl_texts:
-        #     item = None
-        #
-        # # Clear Combo Boxes and disable them
-        # util_clear_combos(self.lvl_combos[1:])
-        # util_set_disabled(self.lvl_combos[1:])
-        #
-        # # Set first combo box to first index
-        # self.lvl_01_combo.setCurrentIndex(0)
-        #
-        # # Reactivating signals on combo boxes
-        # util_unlock_signals(self.lvl_combos)
+        # Declares the maya file type
+        if self.current_file.endswith('.ma'):
+            maya_file_type = 'mayaAscii'
+        elif self.current_file.endswith('.mb'):
+            maya_file_type = 'mayaBinary'
+
+        # Get File Path
+        if self.lvl_01_text is not None and self.lvl_02_text is None:
+            file_path = f"{self.lvl_01_dir}/{self.current_file}"
+
+        elif self.lvl_02_text is not None and self.lvl_03_text is None:
+            file_path = f"{self.lvl_02_dir}/{self.current_file}"
+
+        elif self.lvl_03_text is not None and self.lvl_04_text is None:
+            file_path = f"{self.lvl_03_dir}/{self.current_file}"
+
+        elif self.lvl_04_text is not None and self.lvl_05_text is None:
+            file_path = f"{self.lvl_04_dir}/{self.current_file}"
+
+        elif self.lvl_05_text is not None:
+            file_path = f"{self.lvl_05_dir}/{self.current_file}"
+
+
+        # Open file depending on which radio button is checked
+        if self.reference_radio_btn.isChecked():
+            for asset in range(asset_quantity):
+                mbr_util_file_reference(file_path, maya_file_type, self.namespace_le.text())
+
+        elif self.import_radio_btn.isChecked():
+            for asset in range(asset_quantity):
+                mbr_util_file_import(file_path, maya_file_type)
+
+        elif self.open_file_radio_btn.isChecked():
+            for asset in range(asset_quantity):
+                mbr_util_open_file(file_path)
+
+        # Block signals of combo boxes
+        mbr_helper_block_signals(self.lvl_combos)
+
+        # Reset Variables to None
+        for item in self.lvl_texts:
+            item = None
+
+        # Clear Combo Boxes and disable them
+        mbr_helper_clear_combos(self.lvl_combos[1:])
+        mbr_helper_set_disabled(self.lvl_combos[1:])
+        self.file_list.clear()
+
+        # Set first combo box to first index
+        self.lvl_01_combo.setCurrentIndex(0)
+
+        # Reactivating signals on combo boxes
+        mbr_helper_unlock_signals(self.lvl_combos)
 
 # -------------------------------------
 #
