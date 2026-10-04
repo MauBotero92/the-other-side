@@ -15,6 +15,7 @@ from TOS_Pipeline.pipeline.core.fs_utils import *
 from TOS_Pipeline.pipeline.core.naming import *
 
 import maya.cmds as cmds
+import os
 
 # -------------------------------------
 
@@ -294,10 +295,10 @@ class tos_shot_creator_window(wdg.QMainWindow):
         # Sequence Combo Box
         self.sequence_combo = wdg.QComboBox()
         self.sequence_combo.setFixedWidth(self.combo_width)
-        # for item in self.sequences_list:
-        #     self.sequence_combo.addItem(item[0], item[1])
-        # self.sequence_combo.insertItem(0, '-')
-        # self.sequence_combo.setCurrentIndex(0)
+        for item in self.sequences_list:
+            self.sequence_combo.addItem(item[0], item[1])
+        self.sequence_combo.insertItem(0, '-')
+        self.sequence_combo.setCurrentIndex(0)
 
         # Shot Number Combo Box
         self.shot_number_combo = wdg.QComboBox()
@@ -653,7 +654,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
 
         mbr_helper_unlock_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
 
-    def new_shot_check_toggled(self):
+    def new_shot_check_toggled(self, checked):
 
         if checked:
             self.shot_number_le.clear()
@@ -739,10 +740,94 @@ class tos_shot_creator_window(wdg.QMainWindow):
         self.resize(460, initial_height)
 
     def sequence_combo_changed(self):
-        pass
+
+        # Initial variables and state
+        self.current_sequence = self.sequence_combo.currentData()
+        self.shot_number_combo.setEnabled(True)
+        self.shot_number_le.setEnabled(True)
+
+        # Blocks signals to prevent unwanted behavior in the other combo boxes
+        mbr_helper_block_signals([self.shot_number_combo, self.stage_combo])
+
+        # Adding the shot number folders into the shot combo box
+        shot_number_folder_path_list = [
+            self.sequences_path, '/',
+            self.current_sequence
+        ]
+
+        shot_number_folder_path = ''.join(shot_number_folder_path_list)
+        self.shot_number_list_initial = mbr_util_list_directory_contents(shot_number_folder_path, content_type='folders')
+
+        self.shot_number_list_sorted = sorted(self.shot_number_list_initial, key=mbr_util_natural_key)
+        self.shot_number_list_sorted_trimmed = []
+        for item in self.shot_number_list_sorted:
+            self.shot_number_list_sorted_trimmed.append(item[-3:])
+
+        self.shot_number_list = ['-'] + self.shot_number_list_sorted_trimmed
+
+        if self.shot_number_combo.count() == 0:
+            self.shot_number_combo.addItems(self.shot_number_list)
+        else:
+            self.shot_number_combo.clear()
+            self.shot_number_combo.addItems(self.shot_number_list)
+
+        # Enables signals to allow normal behavior in the other combo boxes
+        mbr_helper_unlock_signals([self.shot_number_combo, self.stage_combo])
 
     def shot_number_combo_changed(self):
-        pass
+
+        # Initial variables
+        self.current_shot_number = self.shot_number_combo.currentText()
+        self.current_stage = self.stage_combo.currentData()
+
+        if self.stage_combo.count() == 0:
+            # Block signals
+            mbr_helper_block_signals([self.stage_combo])
+
+            # Combo Boxes clean up
+            self.stage_combo.setEnabled(True)
+            self.stage_combo.clear()
+
+            for item in self.stages_list:
+                self.stage_combo.addItem(item[0], item[1])
+
+            # Unlock signals
+            mbr_helper_unlock_signals([self.stage_combo])
+
+        self.create_shot_btn.setEnabled(True)
+        self.create_shot_btn.setStyleSheet(self.btn_style)
+
+        if self.from_published_radial_btn.isChecked():
+            # Sequence Variables
+            self.current_sequence_txt = self.sequence_combo.currentText()
+            self.current_sequence = self.sequence_combo.currentData()
+
+            # Shot Number Variables
+            if self.new_shot_check.isChecked():
+                self.current_shot_number = f"{self.current_sequence_txt.lower()}_{self.shot_number_le.text()}"
+                self.current_shot_number_txt = self.shot_number_le.text()
+            elif not self.new_shot_check.isChecked():
+                self.current_shot_number = f"{self.current_sequence_txt.lower()}_{self.shot_number_combo.currentText()}"
+                self.current_shot_number_txt = self.shot_number_combo.currentText()
+
+            # Stage Variables
+            self.current_stage_txt = self.stage_combo.currentText()
+            self.current_stage = self.stage_combo.currentData()
+
+            shot_number_path = f"{self.sequences_path}/{self.current_sequence}/{self.current_shot_number}"
+            shot_number_files = mbr_util_list_directory_contents(shot_number_path, content_type='files')
+            published_shot = f"{self.current_sequence_txt}_{self.current_shot_number_txt}.ma"
+            self.published_shot_path = f"{shot_number_path}/{published_shot}"
+
+            if published_shot in shot_number_files:
+                published_shot = f"{self.current_sequence_txt}_{self.current_shot_number_txt}.ma"
+                self.published_shot_path = f"{shot_number_path}/{published_shot}"
+
+                self.file_le.setStyleSheet("background-color: #026700")
+                self.file_le.setText(published_shot)
+            else:
+                self.file_le.setStyleSheet("background-color: #a70000")
+                self.file_le.setText('No Published File Detected')
 
     def shot_number_le_edited(self):
 
@@ -757,11 +842,200 @@ class tos_shot_creator_window(wdg.QMainWindow):
 
     def stage_combo_changed(self):
 
-        # Intial variables
+        # Initial variables
         self.current_stage = self.stage_combo.currentData()
 
     def create_shot_btn_clicked(self):
-        pass
+
+        # Sequence Variables
+        self.current_sequence_txt = self.sequence_combo.currentText()
+        self.current_sequence = self.sequence_combo.currentData()
+
+        # Shot Number Variables
+        if self.new_shot_check.isChecked():
+            self.current_shot_number = f"{self.current_sequence_txt.lower()}_{self.shot_number_le.text()}"
+            self.current_shot_number_txt = self.shot_number_le.text()
+        elif not self.new_shot_check.isChecked():
+            self.current_shot_number = f"{self.current_sequence_txt.lower()}_{self.shot_number_combo.currentText()}"
+            self.current_shot_number_txt = self.shot_number_combo.currentText()
+
+        # Stage Variables
+        self.current_stage_txt = self.stage_combo.currentText()
+        self.current_stage = self.stage_combo.currentData()
+
+        # Path and Version Variables if New Shot
+        if not self.new_shot_check.isChecked():
+            if not self.from_published_radial_btn.isChecked():
+                shot_path = f"{self.sequences_path}/{self.current_sequence}/{self.current_shot_number}"
+                save_path = f"{shot_path}/{self.current_stage}"
+                save_path_files = sorted(mbr_util_list_directory_contents(save_path, content_type='files'), key=mbr_util_natural_key)
+                if len(save_path_files) > 0:
+                    last_version = save_path_files[-1][-9:-6]
+                    last_version_first_str = last_version[0]
+                    last_version_second_str = last_version[1]
+                    last_version_third_str = last_version[2]
+
+                    # Versions up logic
+                    if last_version_third_str != '9':
+                        last_version_third_int = int(last_version_third_str)
+                        last_version_third_int += 1
+                        last_version_new = f"{last_version_first_str}{last_version_second_str}{str(last_version_third_int)}"
+
+                    elif last_version_third_str == '9' and last_version_second_str != '9':
+                        last_version_second_int = int(last_version_second_str)
+                        last_version_second_int += 1
+                        last_version_new = f"{last_version_first_str}{str(last_version_second_int)}0"
+
+                    elif last_version_third_str == '9' and last_version_second_str == '9':
+                        last_version_first_int = int(last_version_first_str)
+                        last_version_first_int += 1
+                        last_version_new = f"{str(last_version_first_int)}00"
+
+                    new_version = last_version_new
+                else:
+                    new_version = '001'
+
+        # Path and Version Variables if Old Shot
+        else:
+            shot_path = f"{self.sequences_path}/{self.current_sequence}/{self.current_shot_number}"
+            save_path = f"{shot_path}/{self.current_stage}"
+            new_version = '001'
+
+        # File Variable
+        if not self.from_published_radial_btn.isChecked():
+            file_name = f"{self.current_sequence_txt}_{self.current_shot_number_txt}_{self.current_stage_txt}_v{new_version}_00.ma"
+
+        # From Current Scene
+        if self.from_current_radial_btn.isChecked():
+            # If New Shot
+            if self.new_shot_check.isChecked():
+                # Guard check if the shot already exists
+                if os.path.exists(shot_path):
+                    from_current_warning_msg = wdg.QMessageBox()
+                    from_current_warning_msg.critical(
+                        None,
+                        'Error',
+                        'Shot already exists',
+                        )
+                    return
+
+                # Create folder structure
+                os.mkdir(shot_path)
+                os.mkdir(f"{shot_path}/anim")
+                os.mkdir(f"{shot_path}/fx")
+                os.mkdir(f"{shot_path}/layout")
+                os.mkdir(f"{shot_path}/shading")
+                os.mkdir(f"{shot_path}/transfer")
+
+                # Rename current file
+                cmds.file(rename=f"{save_path}/{file_name}")
+
+                # Save current file
+                cmds.file(save=True, force=True, type='mayaAscii')
+
+                # Confirm Message
+                from_current_new_shot_msg = wdg.QMessageBox()
+                from_current_new_shot_msg.information(
+                    None,
+                    'Confirm Message',
+                    'New Shot created from scene'
+                    )
+
+            # If Existing Shot
+            elif not self.new_shot_check.isChecked():
+
+                # Rename current file
+                cmds.file(rename=f"{save_path}/{file_name}")
+
+                # Save current file
+                cmds.file(save=True, force=True, type='mayaAscii')
+
+                # Confirm Message
+                from_current_existing_shot_msg = wdg.QMessageBox()
+                from_current_existing_shot_msg.information(
+                    None,
+                    'Confirm Message',
+                    'New Version created from scene'
+                    )
+
+        elif self.from_file_radial_btn.isChecked():
+            # If New Shot
+            if self.new_shot_check.isChecked():
+                # Guard check if the shot already exists
+                if os.path.exists(shot_path):
+                    from_current_warning_msg = wdg.QMessageBox()
+                    from_current_warning_msg.critical(
+                        None,
+                        'Error',
+                        'Shot already exists',
+                        )
+                    return
+
+                # Create folder structure
+                os.mkdir(shot_path)
+                os.mkdir(f"{shot_path}/anim")
+                os.mkdir(f"{shot_path}/fx")
+                os.mkdir(f"{shot_path}/layout")
+                os.mkdir(f"{shot_path}/shading")
+                os.mkdir(f"{shot_path}/transfer")
+
+                # Rename current file
+                cmds.file(rename=f"{save_path}/{file_name}")
+
+                # Save current file
+                cmds.file(save=True, force=True, type='mayaAscii')
+
+                # Confirm Message
+                from_file_new_shot_msg = wdg.QMessageBox()
+                from_file_new_shot_msg.information(
+                    None,
+                    'Confirm Message',
+                    'New Shot created from file'
+                    )
+
+            # If Existing Shot
+            elif not self.new_shot_check.isChecked():
+                # Rename current file
+                mbr_util_open_file(self.from_file_le.text())
+
+                # Rename current file
+                cmds.file(rename=f"{save_path}/{file_name}")
+
+                # Save current file
+                cmds.file(save=True, force=True, type='mayaAscii')
+
+                # Confirm Message
+                from_file_existing_shot_msg = wdg.QMessageBox()
+                from_file_existing_shot_msg.information(
+                    None,
+                    'Confirm Message',
+                    'New Version created from file'
+                    )
+
+        elif self.from_published_radial_btn.isChecked():
+            # Open the published file
+            mbr_util_open_file(self.published_shot_path)
+
+            # Renames the published file to the working file
+            if self.current_stage == 'anim':
+                current_file_anim = f"{self.current_sequence_txt}_{self.current_shot_number_txt}_Animation_v001_00.ma"
+
+                cmds.file(rename=f"{self.sequences_path}/{self.current_sequence}/{self.current_shot_number}/anim/{current_file_anim}")
+                cmds.file(save=True)
+
+            if self.current_stage == 'shading':
+                current_file_shading = f"{self.current_sequence_txt}_{self.current_shot_number_txt}_Shading_v001_00.ma"
+
+                cmds.file(rename=f"{shot_number_path}/{self.current_stage}/{current_file_shading}")
+                cmds.file(save=True)
+
+            # Confirm Message for Published Shot
+            published_shot_msg = wdg.QMessageBox()
+            published_shot_msg.information(
+                None,
+                'Confirm Message',
+                'Shot Created from Published Scene'
+                )
 
 # -------------------------------------
 #
