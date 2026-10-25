@@ -4,7 +4,7 @@
 #
 # -------------------------------------
 
-import TOS_Pipeline.pipeline.dcc.maya.ui.windows.shot_creator.shot_creator_window as sc
+import TOS_Pipeline.pipeline.dcc.maya.ui.windows.shot_creator_window as sc
 import importlib
 import sys
 

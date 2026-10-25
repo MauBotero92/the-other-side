@@ -4,7 +4,7 @@
 #
 # -------------------------------------
 
-import TOS_Pipeline.pipeline.dcc.maya.ui.windows.scene_manager.scene_manager_window as sm
+import TOS_Pipeline.pipeline.dcc.maya.ui.windows.scene_manager_window as sm
 import importlib
 import sys
 

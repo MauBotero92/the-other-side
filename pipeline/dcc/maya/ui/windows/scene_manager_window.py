@@ -8,7 +8,7 @@ from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg, core, gui
 from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_utils import mbr_util_get_maya_window
 from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_helpers import *
 
-from TOS_Pipeline.pipeline.dcc.maya.engine.procedures.scene_manager.scene_manager_engine import *
+from TOS_Pipeline.pipeline.dcc.maya.engine.procedures.scene_manager_engine import *
 from TOS_Pipeline.pipeline.dcc.maya.engine.utils.maya_utils import *
 
 from TOS_Pipeline.pipeline.core.fs_utils import *
@@ -599,7 +599,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
         mbr_helper_block_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
 
         tos_root = mbr_util_get_tos_root()
-        project_path = f"{tos_root}/Production"
+        project_path = f"{tos_root}/Production/"
 
         cmds.workspace(project_path, openWorkspace=True)
 

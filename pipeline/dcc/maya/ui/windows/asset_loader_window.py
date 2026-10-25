@@ -334,7 +334,6 @@ class tos_asset_loader_window(wdg.QMainWindow):
     # -------------------------------------
 
     def create_layout(self):
-        pass
 
         # -------------------------------------
         #
@@ -667,7 +666,7 @@ class tos_asset_loader_window(wdg.QMainWindow):
         tos_root = mbr_util_get_tos_root()
 
         if tos_root:
-            project_path = f"{tos_root}/Production"
+            project_path = f"{tos_root}/Production/"
         else:
             return
 
