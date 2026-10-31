@@ -19,6 +19,8 @@ __all__ = [
     'mbr_helper_set_enabled',
     'mbr_helper_set_disabled',
     'mbr_helper_clear_combos',
+    'mbr_helper_fill_next_combo',
+    'mbr_helper_fill_file_list',
 ]
 
 # -------------------------------------------
@@ -76,3 +78,30 @@ def mbr_helper_clear_combos(user_list):
 
     for widget in user_list:
         widget.clear()
+
+'''
+PURPOSE:
+PROCEDURE:
+ASSUMPTIONS:
+'''
+def mbr_helper_fill_next_combo(user_list, combo):
+
+    combo.addItem('-')
+    combo.addItems(user_list)
+
+    # Settings Defaults
+    combo.setEnabled(True)
+
+'''
+PURPOSE:
+PROCEDURE:
+ASSUMPTIONS:
+'''
+def mbr_helper_fill_file_list(files_list, file_widget):
+
+    if len(files_list) == 0:
+        file_widget.setEnabled(False)
+    else:
+        file_widget.setEnabled(True)
+        file_widget.addItems(files_list)
+

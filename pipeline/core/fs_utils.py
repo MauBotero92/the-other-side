@@ -18,6 +18,8 @@ import maya.cmds as cmds
 
 __all__ = [
     'mbr_util_list_directory_contents',
+    'mbr_util_sorted_folders_list',
+    'mbr_util_filtered_file_list',
     'mbr_util_find_file',
     'mbr_util_get_drive_label',
     'mbr_util_get_tos_root',
@@ -48,6 +50,36 @@ def mbr_util_list_directory_contents(directory, content_type='folders'):
 
     else:
         raise ValueError(f"content_type must be either 'folders' or 'files', got '{content_type}'")
+
+'''
+PURPOSE:     Return a list of sorted folders in a given directory   
+PROCEDURE:      
+                
+ASSUMPTIONS:    
+'''
+def mbr_util_sorted_folders_list(directory):
+
+    function_list = mbr_util_list_directory_contents(directory, content_type='folders')
+    dirs_filtered = [x for x in function_list if not x.startswith('.')]
+    dirs_sorted = sorted(dirs_filtered, key=lambda x: x.replace('_', ' ').lower())
+
+    return dirs_sorted
+
+'''
+PURPOSE:
+PROCEDURE:
+ASSUMPTIONS:
+'''
+def mbr_util_filtered_file_list(directory):
+
+    files = mbr_util_list_directory_contents(directory, content_type='files')
+    files_filtered = []
+
+    for file in files:
+        if file.endswith(('.mb', '.ma')):
+            files_filtered.append(file)
+
+    return files_filtered
 
 '''
 PURPOSE:

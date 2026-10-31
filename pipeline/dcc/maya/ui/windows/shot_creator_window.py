@@ -8,7 +8,7 @@ from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg, core, gui
 from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_utils import mbr_util_get_maya_window
 from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_helpers import *
 
-from TOS_Pipeline.pipeline.dcc.maya.engine.shot_creator.shot_creator_engine import *
+from TOS_Pipeline.pipeline.dcc.maya.engine.procedures.shot_creator_engine import *
 from TOS_Pipeline.pipeline.dcc.maya.engine.utils.maya_utils import *
 
 from TOS_Pipeline.pipeline.core.fs_utils import *

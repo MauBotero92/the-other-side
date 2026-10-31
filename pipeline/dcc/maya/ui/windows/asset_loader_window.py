@@ -8,10 +8,12 @@ from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg, core, gui
 from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_utils import mbr_util_get_maya_window
 from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_helpers import *
 
+from TOS_Pipeline.pipeline.dcc.maya.engine.procedures.asset_loader_engine import *
 from TOS_Pipeline.pipeline.dcc.maya.engine.utils.maya_utils import *
 
 from TOS_Pipeline.pipeline.core.fs_utils import *
 from TOS_Pipeline.pipeline.core.naming import *
+from TOS_Pipeline.pipeline.core.python_utils import *
 
 import maya.cmds as cmds
 
@@ -107,7 +109,7 @@ class tos_asset_loader_window(wdg.QMainWindow):
         #
         # -------------------------------------
 
-        # Variables
+        # Init Variables
         self.init_lvl_01_folder_list = None
         self.lvl_01_folder_list = None
         self.current_file = None
@@ -195,9 +197,6 @@ class tos_asset_loader_window(wdg.QMainWindow):
         self.create_connections()
         self.set_defaults()
 
-        self.lvl_combos = [self.lvl_01_combo, self.lvl_02_combo, self.lvl_03_combo, self.lvl_04_combo, self.lvl_05_combo]
-        self.lvl_texts = [self.lvl_01_text, self.lvl_02_text, self.lvl_03_text, self.lvl_04_text, self.lvl_05_text]
-
     # -------------------------------------
     #
     #       Create Widgets
@@ -267,6 +266,9 @@ class tos_asset_loader_window(wdg.QMainWindow):
         # Folder Lvl 05 Combo Box
         self.lvl_05_combo = wdg.QComboBox()
         self.lvl_05_combo.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
+
+        # Lvl Combos List
+        self.lvl_combos = [self.lvl_01_combo, self.lvl_02_combo, self.lvl_03_combo, self.lvl_04_combo, self.lvl_05_combo]
 
         # -------------------------------------
         #
@@ -642,7 +644,9 @@ class tos_asset_loader_window(wdg.QMainWindow):
             self.init_lvl_01_folder_list = ['-']
             self.init_lvl_01_folder_list.append(mbr_util_list_directory_contents(self.assets_path, content_type='folders'))
             self.lvl_01_folder_list = [self.init_lvl_01_folder_list[0]] + self.init_lvl_01_folder_list[1]
+            self.lvl_01_combo.blockSignals(True)
             self.lvl_01_combo.addItems(self.lvl_01_folder_list)
+            self.lvl_01_combo.blockSignals(False)
 
         else:
             self.lvl_01_combo.setEnabled(False)
@@ -700,217 +704,53 @@ class tos_asset_loader_window(wdg.QMainWindow):
 
     def lvl_01_combo_changed(self):
 
-        # Preventing unwanted changes on combo boxes
-        mbr_helper_block_signals(self.lvl_combos[1:])
-
         # Function variables
         self.lvl_01_text = self.lvl_01_combo.currentText()
-        for item in self.lvl_texts[1:]:
-            item = None
-
-        # Clear Combos
-        mbr_helper_clear_combos(self.lvl_combos[1:])
-        self.file_list.clear()
-
-        # Adding folders on the first combo box
         self.lvl_01_dir = f"{self.wks_read_le.text()}Assets/{self.lvl_01_text}"
-        lvl_01_list = mbr_util_list_directory_contents(self.lvl_01_dir, content_type='folders')
-        lvl_01_dirs_filtered = [x for x in lvl_01_list if not x.startswith('.')]
-        lvl_01_dirs_sorted = sorted(lvl_01_dirs_filtered, key=lambda x: x.replace('_', ' ').lower())
+        self.lvl_02_text = self.lvl_03_text = self.lvl_04_text = self.lvl_05_text = None
 
-        if len(lvl_01_dirs_sorted) > 0:
-            self.lvl_02_combo.addItem('-')
-            self.lvl_02_combo.addItems(lvl_01_dirs_sorted)
-
-            # Settings Defaults
-            self.lvl_02_combo.setEnabled(True)
-            mbr_helper_set_disabled(self.lvl_combos[2:])
-
-        # Adding files on the file combo box
-        lvl_01_files = mbr_util_list_directory_contents(self.lvl_01_dir, content_type='files')
-        lvl_01_files_filtered = []
-
-        for item in lvl_01_files:
-            if item.endswith(('.mb', '.ma')):
-                lvl_01_files_filtered.append(item)
-
-        # Combo Boxes clean up
-        if len(lvl_01_files) == 0:
-            self.file_list.setEnabled(False)
-        else:
-            self.file_list.setEnabled(True)
-            self.file_list.addItems(lvl_01_files_filtered)
-
-        # Reactivating signals on combo boxes
-        mbr_helper_unlock_signals(self.lvl_combos[1:])
+        # Procedure
+        mbr_egn_combo_changed(self.lvl_combos, self.lvl_01_text, self.lvl_01_dir, self.lvl_01_combo, 1, self.file_list)
 
     def lvl_02_combo_changed(self):
 
-        # Preventing unwanted changes on combo boxes
-        mbr_helper_block_signals(self.lvl_combos[2:])
-
         # Function variables
         self.lvl_02_text = self.lvl_02_combo.currentText()
-        for item in self.lvl_texts[2:]:
-            item = None
-
-        # Clear Combos
-        mbr_helper_clear_combos(self.lvl_combos[2:])
-        self.file_list.clear()
-
-        # Adding folders on the first combo box
         self.lvl_02_dir = f"{self.lvl_01_dir}/{self.lvl_02_text}"
-        lvl_02_list = mbr_util_list_directory_contents(self.lvl_02_dir, content_type='folders')
-        lvl_02_dirs_filtered = [x for x in lvl_02_list if not x.startswith('.')]
-        lvl_02_dirs_sorted = sorted(lvl_02_dirs_filtered, key=lambda x: x.replace('_', ' ').lower())
+        self.lvl_03_text = self.lvl_04_text = self.lvl_05_text = None
 
-        if len(lvl_02_dirs_sorted) > 0:
-            self.lvl_03_combo.addItem('-')
-            self.lvl_03_combo.addItems(lvl_02_dirs_sorted)
-
-            # Settings Defaults
-            self.lvl_03_combo.setEnabled(True)
-            mbr_helper_set_disabled(self.lvl_combos[3:])
-
-        # Adding files on the file combo box
-        lvl_02_files = mbr_util_list_directory_contents(self.lvl_02_dir, content_type='files')
-        lvl_02_files_filtered = []
-
-        for item in lvl_02_files:
-            if item.endswith(('.mb', '.ma')):
-                lvl_02_files_filtered.append(item)
-
-        # Combo Boxes clean up
-        if len(lvl_02_files) == 0:
-            self.file_list.setEnabled(False)
-        else:
-            self.file_list.setEnabled(True)
-            self.file_list.addItems(lvl_02_files_filtered)
-
-        # Reactivating signals on combo boxes
-        mbr_helper_unlock_signals(self.lvl_combos[2:])
+        # Procedure
+        mbr_egn_combo_changed(self.lvl_combos, self.lvl_02_text, self.lvl_02_dir, self.lvl_03_combo, 2, self.file_list)
 
     def lvl_03_combo_changed(self):
 
-        # Preventing unwanted changes on combo boxes
-        mbr_helper_block_signals(self.lvl_combos[3:])
-
         # Function variables
         self.lvl_03_text = self.lvl_03_combo.currentText()
-        for item in self.lvl_texts[3:]:
-            item = None
-
-        # Clear Combos
-        mbr_helper_clear_combos(self.lvl_combos[3:])
-        self.file_list.clear()
-
-        # Adding folders on the first combo box
         self.lvl_03_dir = f"{self.lvl_02_dir}/{self.lvl_03_text}"
-        lvl_03_list = mbr_util_list_directory_contents(self.lvl_03_dir, content_type='folders')
-        lvl_03_dirs_filtered = [x for x in lvl_03_list if not x.startswith('.')]
-        lvl_03_dirs_sorted = sorted(lvl_03_dirs_filtered, key=lambda x: x.replace('_', ' ').lower())
+        self.lvl_04_text = self.lvl_05_text = None
 
-        if len(lvl_03_dirs_sorted) > 0:
-            self.lvl_04_combo.addItem('-')
-            self.lvl_04_combo.addItems(lvl_03_dirs_sorted)
-
-            # Settings Defaults
-            self.lvl_04_combo.setEnabled(True)
-            mbr_helper_set_disabled(self.lvl_combos[4:])
-
-        # Adding files on the file combo box
-        lvl_03_files = mbr_util_list_directory_contents(self.lvl_03_dir, content_type='files')
-        lvl_03_files_filtered = []
-
-        for item in lvl_03_files:
-            if item.endswith(('.mb', '.ma')):
-                lvl_03_files_filtered.append(item)
-
-        # Combo Boxes clean up
-        if len(lvl_03_files) == 0:
-            self.file_list.setEnabled(False)
-        else:
-            self.file_list.setEnabled(True)
-            self.file_list.addItems(lvl_03_files_filtered)
-
-        # Reactivating signals on combo boxes
-        mbr_helper_unlock_signals(self.lvl_combos[3:])
+        # Procedure
+        mbr_egn_combo_changed(self.lvl_combos, self.lvl_03_text, self.lvl_03_dir, self.lvl_03_combo, 3, self.file_list)
 
 
     def lvl_04_combo_changed(self):
 
-        # Preventing unwanted changes on combo boxes
-        mbr_helper_block_signals(self.lvl_combos[4:])
-
         # Function variables
         self.lvl_04_text = self.lvl_04_combo.currentText()
-        for item in self.lvl_texts[4:]:
-            item = None
-
-        # Clear Combos
-        mbr_helper_clear_combos(self.lvl_combos[4:])
-        self.file_list.clear()
-
-        # Adding folders on the first combo box
         self.lvl_04_dir = f"{self.lvl_03_dir}/{self.lvl_04_text}"
-        lvl_04_list = mbr_util_list_directory_contents(self.lvl_04_dir, content_type='folders')
-        lvl_04_dirs_filtered = [x for x in lvl_04_list if not x.startswith('.')]
-        lvl_04_dirs_sorted = sorted(lvl_04_dirs_filtered, key=lambda x: x.replace('_', ' ').lower())
+        self.lvl_05_text = None
 
-        if len(lvl_04_dirs_sorted) > 0:
-            self.lvl_05_combo.addItem('-')
-            self.lvl_05_combo.addItems(lvl_04_dirs_sorted)
-
-            # Settings Defaults
-            self.lvl_05_combo.setEnabled(True)
-            mbr_helper_set_disabled(self.lvl_combos[5:])
-
-        # Adding files on the file combo box
-        lvl_04_files = mbr_util_list_directory_contents(self.lvl_04_dir, content_type='files')
-        lvl_04_files_filtered = []
-
-        for item in lvl_04_files:
-            if item.endswith(('.mb', '.ma')):
-                lvl_04_files_filtered.append(item)
-
-        # Combo Boxes clean up
-        if len(lvl_04_files) == 0:
-            self.file_list.setEnabled(False)
-        else:
-            self.file_list.setEnabled(True)
-            self.file_list.addItems(lvl_04_files_filtered)
-
-        # Reactivating signals on combo boxes
-        mbr_helper_unlock_signals(self.lvl_combos[4:])
+        # Procedure
+        mbr_egn_combo_changed(self.lvl_combos, self.lvl_04_text, self.lvl_04_dir, self.lvl_04_combo, 4, self.file_list)
 
     def lvl_05_combo_changed(self):
 
-        # Preventing unwanted changes on combo boxes
-        mbr_helper_block_signals(self.lvl_combos[5:])
-
         # Function variables
         self.lvl_05_text = self.lvl_05_combo.currentText()
+        self.lvl_05_dir = f"{self.lvl_04_dir}/{self.lvl_05_text}"
 
-        # Clear Combos
-        self.file_list.clear()
-
-        # Adding files on the file combo box
-        lvl_05_files = mbr_util_list_directory_contents(self.lvl_05_dir, content_type='files')
-        lvl_05_files_filtered = []
-
-        for item in lvl_05_files:
-            if item.endswith(('.mb', '.ma')):
-                lvl_05_files_filtered.append(item)
-
-        # Combo Boxes clean up
-        if len(lvl_05_files) == 0:
-            self.file_list.setEnabled(False)
-        else:
-            self.file_list.setEnabled(True)
-            self.file_list.addItems(lvl_05_files_filtered)
-
-        # Reactivating signals on combo boxes
-        mbr_helper_unlock_signals(self.lvl_combos[5:])
+        # Procedure
+        mbr_egn_combo_changed(self.lvl_combos, self.lvl_05_text, self.lvl_05_dir, self.lvl_05_combo, 5, self.file_list)
 
     def file_list_changed(self):
 
