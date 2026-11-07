@@ -1,3 +1,3 @@
 def run():
 
-    print('run')
+    print('sequencer manager run')
