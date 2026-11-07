@@ -23,6 +23,7 @@ __all__ = [
     'mbr_util_get_camera_namespaces',
     'mbr_util_match_translation_to_obj',
     'mbr_util_parent_constraint',
+    'mbr_util_get_maya_extension',
 ]
 
 # -------------------------------------
@@ -139,3 +140,17 @@ def mbr_util_parent_constraint(source, target, offset=True):
         cur_cons = cmds.parentContraint(mo=True)[0]
     else:
         cur_cons = cmds.parentConstraint(mo=False)[0]
+
+'''
+PURPOSE:
+PROCEDURE:
+ASSUMPTIONS:
+'''
+def mbr_util_get_maya_extension(cur_file):
+
+    if cur_file.endswith('.ma'):
+        maya_file_ext = 'mayaAscii'
+    elif cur_file.endswith('.mb'):
+        maya_file_ext = 'mayaBinary'
+
+    return maya_file_ext

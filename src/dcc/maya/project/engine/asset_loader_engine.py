@@ -4,8 +4,8 @@
 #
 # -------------------------------------
 
-from TOS_Pipeline.pipeline.core.fs_utils import *
-from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_helpers import *
+from TOS_Pipeline.src.core.fs_utils import *
+from TOS_Pipeline.src.dcc.maya.utils.qt_helpers import *
 
 # -------------------------------------------
 #
@@ -14,10 +14,18 @@ from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_helpers import *
 # -------------------------------------------
 
 __all__ = [
+    'mbr_egn_fill_first_combo',
     'mbr_egn_combo_changed',
 ]
 
-def mbr_egn_combo_changed(combos_list, lvl_text, lvl_dir, lvl_combo, lvl_value, file_widget):
+def mbr_egn_fill_first_combo(path, combo):
+
+    lvl_01_folder_list = ['-'] + mbr_util_list_directory_contents(path, content_type='folders')
+    combo.blockSignals(True)
+    combo.addItems(lvl_01_folder_list)
+    combo.blockSignals(False)
+
+def mbr_egn_combo_changed(combos_list, lvl_text, lvl_dir, lvl_value, file_widget):
 
     if lvl_value != 5:
         # Preventing unwanted changes on combo boxes

@@ -4,16 +4,16 @@
 #
 # -------------------------------------
 
-from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg, core, gui
-from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_utils import mbr_util_get_maya_window
-from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_helpers import *
+from TOS_Pipeline.src.dcc.maya.utils.qt_compat import wdg, core, gui
+from TOS_Pipeline.src.dcc.maya.utils.qt_utils import mbr_util_get_maya_window
+from TOS_Pipeline.src.dcc.maya.utils.qt_helpers import *
+from TOS_Pipeline.src.dcc.maya.utils.maya_utils import *
 
-from TOS_Pipeline.pipeline.dcc.maya.engine.procedures.asset_loader_engine import *
-from TOS_Pipeline.pipeline.dcc.maya.engine.utils.maya_utils import *
+from TOS_Pipeline.src.core.fs_utils import *
+from TOS_Pipeline.src.core.naming import *
+from TOS_Pipeline.src.core.python_utils import *
 
-from TOS_Pipeline.pipeline.core.fs_utils import *
-from TOS_Pipeline.pipeline.core.naming import *
-from TOS_Pipeline.pipeline.core.python_utils import *
+from TOS_Pipeline.src.dcc.maya.project.engine.asset_loader_engine import *
 
 import maya.cmds as cmds
 
@@ -88,6 +88,7 @@ class tos_asset_loader_window(wdg.QMainWindow):
         self.lvl_03_combo = None
         self.lvl_04_combo = None
         self.lvl_05_combo = None
+        self.lvl_combos = None
 
         self.file_list = None
 
@@ -630,31 +631,26 @@ class tos_asset_loader_window(wdg.QMainWindow):
 
     def set_defaults(self):
 
-        # Checks if the assets path is valid or not
-        if self.assets_path:
+        tos_root = mbr_util_get_tos_root() + '/Production/'
 
-            # Enables combo boxes if the assets path is valid
-            self.lvl_01_combo.setEnabled(True)
-            self.lvl_02_combo.setEnabled(False)
-            self.lvl_03_combo.setEnabled(False)
-            self.lvl_04_combo.setEnabled(False)
-            self.lvl_05_combo.setEnabled(False)
+        if tos_root == cmds.workspace(q=True, rootDirectory=True):
 
-            # Fills first combo box
-            self.init_lvl_01_folder_list = ['-']
-            self.init_lvl_01_folder_list.append(mbr_util_list_directory_contents(self.assets_path, content_type='folders'))
-            self.lvl_01_folder_list = [self.init_lvl_01_folder_list[0]] + self.init_lvl_01_folder_list[1]
-            self.lvl_01_combo.blockSignals(True)
-            self.lvl_01_combo.addItems(self.lvl_01_folder_list)
-            self.lvl_01_combo.blockSignals(False)
+            # Checks if the assets path is valid or not
+            if self.assets_path:
+
+                self.set_folder_btn.setEnabled(False)
+
+                # Enables combo boxes if the assets path is valid
+                mbr_helper_set_enabled(self.lvl_combos[:1])
+                mbr_helper_set_disabled(self.lvl_combos[1:])
+
+                # # Fills first combo box
+                mbr_egn_fill_first_combo(self.assets_path, self.lvl_01_combo)
 
         else:
-            self.lvl_01_combo.setEnabled(False)
-            self.lvl_02_combo.setEnabled(False)
-            self.lvl_03_combo.setEnabled(False)
-            self.lvl_04_combo.setEnabled(False)
-            self.lvl_05_combo.setEnabled(False)
 
+            self.set_folder_btn.setEnabled(True)
+            mbr_helper_set_disabled(self.lvl_combos)
 
     # -------------------------------------
     #
@@ -664,43 +660,37 @@ class tos_asset_loader_window(wdg.QMainWindow):
 
     def set_folder_btn_clicked(self):
 
-        # Block combos signals
-        mbr_helper_block_signals(self.lvl_combos)
-
-        tos_root = mbr_util_get_tos_root()
+        tos_root = mbr_util_get_tos_root() + '/Production/'
 
         if tos_root:
-            project_path = f"{tos_root}/Production/"
+
+            # Block combos signals
+            mbr_helper_block_signals(self.lvl_combos)
+
+            # Set project to project path
+            cmds.workspace(tos_root, openWorkspace=True)
+
+            # Sets the read button text to current workspace
+            self.wks_read_le.setText(tos_root)
+
+            # Sets Assets Path
+            self.assets_path = f"{tos_root}Assets"
+
+            # Enables combo boxes if the assets path is valid
+            mbr_helper_set_enabled(self.lvl_combos[:1])
+            mbr_helper_set_disabled(self.lvl_combos[1:])
+
+            # Fills first combo box
+            mbr_egn_fill_first_combo(self.assets_path, self.lvl_01_combo)
+
+            # Disables Set Project Button
+            self.set_folder_btn.setEnabled(False)
+
+            # Unlock combos signals
+            mbr_helper_unlock_signals(self.lvl_combos)
+
         else:
             return
-
-        # Set project to project path
-        cmds.workspace(project_path, openWorkspace=True)
-
-        # Sets the read button text to current workspace
-        self.wks_read_le.setText(project_path)
-
-        # Sets Assets Path
-        self.assets_path = f"{project_path}/Assets"
-
-        # Enables combo boxes if the assets path is valid
-        self.lvl_01_combo.setEnabled(True)
-        self.lvl_02_combo.setEnabled(False)
-        self.lvl_03_combo.setEnabled(False)
-        self.lvl_04_combo.setEnabled(False)
-        self.lvl_05_combo.setEnabled(False)
-
-        # Fills first combo box
-        self.init_lvl_01_folder_list = ['-']
-        self.init_lvl_01_folder_list.append(mbr_util_list_directory_contents(self.assets_path, content_type='folders'))
-        self.lvl_01_folder_list = [self.init_lvl_01_folder_list[0]] + self.init_lvl_01_folder_list[1]
-        self.lvl_01_combo.addItems(self.lvl_01_folder_list)
-
-        # Disables Set Project Button
-        self.set_folder_btn.setEnabled(False)
-
-        # Unlock combos signals
-        mbr_helper_unlock_signals(self.lvl_combos)
 
     def lvl_01_combo_changed(self):
 
@@ -710,7 +700,7 @@ class tos_asset_loader_window(wdg.QMainWindow):
         self.lvl_02_text = self.lvl_03_text = self.lvl_04_text = self.lvl_05_text = None
 
         # Procedure
-        mbr_egn_combo_changed(self.lvl_combos, self.lvl_01_text, self.lvl_01_dir, self.lvl_01_combo, 1, self.file_list)
+        mbr_egn_combo_changed(self.lvl_combos, self.lvl_01_text, self.lvl_01_dir, 1, self.file_list)
 
     def lvl_02_combo_changed(self):
 
@@ -720,7 +710,7 @@ class tos_asset_loader_window(wdg.QMainWindow):
         self.lvl_03_text = self.lvl_04_text = self.lvl_05_text = None
 
         # Procedure
-        mbr_egn_combo_changed(self.lvl_combos, self.lvl_02_text, self.lvl_02_dir, self.lvl_03_combo, 2, self.file_list)
+        mbr_egn_combo_changed(self.lvl_combos, self.lvl_02_text, self.lvl_02_dir, 2, self.file_list)
 
     def lvl_03_combo_changed(self):
 
@@ -730,8 +720,7 @@ class tos_asset_loader_window(wdg.QMainWindow):
         self.lvl_04_text = self.lvl_05_text = None
 
         # Procedure
-        mbr_egn_combo_changed(self.lvl_combos, self.lvl_03_text, self.lvl_03_dir, self.lvl_03_combo, 3, self.file_list)
-
+        mbr_egn_combo_changed(self.lvl_combos, self.lvl_03_text, self.lvl_03_dir, 3, self.file_list)
 
     def lvl_04_combo_changed(self):
 
@@ -741,7 +730,7 @@ class tos_asset_loader_window(wdg.QMainWindow):
         self.lvl_05_text = None
 
         # Procedure
-        mbr_egn_combo_changed(self.lvl_combos, self.lvl_04_text, self.lvl_04_dir, self.lvl_04_combo, 4, self.file_list)
+        mbr_egn_combo_changed(self.lvl_combos, self.lvl_04_text, self.lvl_04_dir, 4, self.file_list)
 
     def lvl_05_combo_changed(self):
 
@@ -750,7 +739,7 @@ class tos_asset_loader_window(wdg.QMainWindow):
         self.lvl_05_dir = f"{self.lvl_04_dir}/{self.lvl_05_text}"
 
         # Procedure
-        mbr_egn_combo_changed(self.lvl_combos, self.lvl_05_text, self.lvl_05_dir, self.lvl_05_combo, 5, self.file_list)
+        mbr_egn_combo_changed(self.lvl_combos, self.lvl_05_text, self.lvl_05_dir, 5, self.file_list)
 
     def file_list_changed(self):
 
@@ -793,12 +782,9 @@ class tos_asset_loader_window(wdg.QMainWindow):
         # Initial Variables
         self.current_file = self.file_list.currentItem().text()
         asset_quantity = self.quantity_spin.value()
-        #
+
         # Declares the maya file type
-        if self.current_file.endswith('.ma'):
-            maya_file_type = 'mayaAscii'
-        elif self.current_file.endswith('.mb'):
-            maya_file_type = 'mayaBinary'
+        cur_maya_ext = mbr_util_get_maya_extension(self.current_file)
 
         # Get File Path
         if self.lvl_01_text is not None and self.lvl_02_text is None:
@@ -816,15 +802,14 @@ class tos_asset_loader_window(wdg.QMainWindow):
         elif self.lvl_05_text is not None:
             file_path = f"{self.lvl_05_dir}/{self.current_file}"
 
-
         # Open file depending on which radio button is checked
         if self.reference_radio_btn.isChecked():
             for asset in range(asset_quantity):
-                mbr_util_file_reference(file_path, maya_file_type, self.namespace_le.text())
+                mbr_util_file_reference(file_path, cur_maya_ext, self.namespace_le.text())
 
         elif self.import_radio_btn.isChecked():
             for asset in range(asset_quantity):
-                mbr_util_file_import(file_path, maya_file_type)
+                mbr_util_file_import(file_path, cur_maya_ext)
 
         elif self.open_file_radio_btn.isChecked():
             for asset in range(asset_quantity):
@@ -832,18 +817,6 @@ class tos_asset_loader_window(wdg.QMainWindow):
 
         # Block signals of combo boxes
         mbr_helper_block_signals(self.lvl_combos)
-
-        # Reset Variables to None
-        for item in self.lvl_texts:
-            item = None
-
-        # Clear Combo Boxes and disable them
-        mbr_helper_clear_combos(self.lvl_combos[1:])
-        mbr_helper_set_disabled(self.lvl_combos[1:])
-        self.file_list.clear()
-
-        # Set first combo box to first index
-        self.lvl_01_combo.setCurrentIndex(0)
 
         # Reactivating signals on combo boxes
         mbr_helper_unlock_signals(self.lvl_combos)

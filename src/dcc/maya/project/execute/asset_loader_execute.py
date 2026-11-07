@@ -4,7 +4,7 @@
 #
 # -------------------------------------
 
-import TOS_Pipeline.pipeline.dcc.maya.ui.windows.asset_loader_window as al
+import TOS_Pipeline.src.dcc.maya.project.ui.windows.asset_loader_window as al
 import importlib
 import sys
 
