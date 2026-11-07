@@ -4,7 +4,7 @@
 #
 # -------------------------------------
 
-import TOS_Pipeline.pipeline.dcc.maya.ui.windows.overlapper_window as ol
+import TOS_Pipeline.src.dcc.maya.animation.ui.windows.overlapper_window as ol
 import importlib
 import sys
 

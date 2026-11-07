@@ -147,16 +147,10 @@ def mbr_util_get_tos_root():
 
         return f"{drive_letter}The Other Side"
 
-    elif system == 'Darwin':
+    else:
         home = Path.home()
 
         return Path(f"{home}/pCloud Drive/The Other Side")
-
-    elif system == 'Linux':
-        return 'Linux'
-
-    else:
-        return None
 
 '''
 PURPOSE:        Get TOS workspace path

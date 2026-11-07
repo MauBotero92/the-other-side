@@ -4,7 +4,7 @@
 #
 # -------------------------------------
 
-import TOS_Pipeline.pipeline.dcc.maya.engine.procedures.version_control_engine as vc
+import TOS_Pipeline.src.dcc.maya.project.engine.version_control_engine as vc
 import importlib
 import sys
 

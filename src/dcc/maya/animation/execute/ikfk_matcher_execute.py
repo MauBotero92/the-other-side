@@ -4,7 +4,7 @@
 #
 # -------------------------------------
 
-import TOS_Pipeline.pipeline.dcc.maya.ui.windows.ikfk_matcher_window as ikfk_match
+import TOS_Pipeline.src.dcc.maya.animation.ui.windows.ikfk_matcher_window as ikfk_match
 import importlib
 import sys
 

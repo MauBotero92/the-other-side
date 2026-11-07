@@ -4,15 +4,15 @@
 #
 # -------------------------------------
 
-from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg, core, gui
-from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_utils import mbr_util_get_maya_window
-from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_helpers import *
+from TOS_Pipeline.src.dcc.maya.utils.qt_compat import wdg, core, gui
+from TOS_Pipeline.src.dcc.maya.utils.qt_utils import mbr_util_get_maya_window
+from TOS_Pipeline.src.dcc.maya.utils.qt_helpers import *
+from TOS_Pipeline.src.dcc.maya.utils.maya_utils import *
 
-from TOS_Pipeline.pipeline.dcc.maya.engine.procedures.ikfk_matcher_engine import *
-from TOS_Pipeline.pipeline.dcc.maya.engine.utils.maya_utils import *
+from TOS_Pipeline.src.core.fs_utils import *
+from TOS_Pipeline.src.core.naming import *
 
-from TOS_Pipeline.pipeline.core.fs_utils import *
-from TOS_Pipeline.pipeline.core.naming import *
+from TOS_Pipeline.src.dcc.maya.animation.engine.ikfk_matcher_engine import *
 
 import maya.cmds as cmds
 from maya.api import OpenMaya as om

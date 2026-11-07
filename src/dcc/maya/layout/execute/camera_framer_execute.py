@@ -4,7 +4,7 @@
 #
 # -------------------------------------
 
-import TOS_Pipeline.pipeline.dcc.maya.ui.windows.camera_framer_window as cf
+import TOS_Pipeline.src.dcc.maya.layout.ui.windows.camera_framer_window as cf
 import importlib
 import sys
 
