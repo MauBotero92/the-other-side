@@ -6,6 +6,7 @@
 
 from TOS_Pipeline.src.dcc.maya.utils.qt_compat import wdg, core, gui
 from TOS_Pipeline.src.dcc.maya.utils.qt_utils import mbr_util_get_maya_window
+from TOS_Pipeline.src.dcc.maya.utils.qt_classes import MBR_TOS_Base_Window
 from TOS_Pipeline.src.dcc.maya.utils.qt_helpers import *
 from TOS_Pipeline.src.dcc.maya.utils.maya_utils import *
 
@@ -31,43 +32,13 @@ __VERSION__ = '4.0'
 #
 # -------------------------------------
 
-class tos_scene_manager_window(wdg.QMainWindow):
+class tos_scene_manager_window(MBR_TOS_Base_Window):
 
     def __init__(self, parent=None):
-        super(tos_scene_manager_window, self).__init__(parent)
-
-        # -------------------------------------
-        #
-        #       Window Title and Size
-        #
-        # -------------------------------------
-
-        self.setWindowTitle(f"TOS Scene Manager {__VERSION__}")
-        self.setFocusPolicy(core.Qt.ClickFocus)
-
-        screen = wdg.QApplication.primaryScreen()
-        screen_height = screen.availableGeometry().height()
-
-        if screen_height < 720:
-            initial_height = int(screen_height * 0.85)
-        else:
-            initial_height = 820
-
-        self.resize(700, initial_height)
-        self.setMinimumSize(700, min(initial_height, int(screen_height * 0.5)))
-
-        # -------------------------------------
-        #
-        #       Menu Bar
-        #
-        # -------------------------------------
-
-        menubar = self.menuBar()
-
-        help_menu = menubar.addMenu('Help')
-
-        help_action = gui.QAction('Go to pipeline-help channel in Slack', self)
-        help_menu.addAction(help_action)
+        super(tos_scene_manager_window, self).__init__(parent,
+                                                       title=f"TOS Scene Manager {__VERSION__}",
+                                                       width=700,
+                                                       height=820)
 
         # -------------------------------------
         #
@@ -138,64 +109,11 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         # -------------------------------------
         #
-        #       Styles
-        #
-        # -------------------------------------
-
-        self.group_boxes_style = """
-            QGroupBox {
-                background-color: #3b3b3b;
-                border: 1px solid #444444;
-                border-radius: 6px;
-                margin-top: 20px
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 4px 6px;
-                background-color: #2a2a2a2a;
-                color: #dddddd
-            }
-            """
-
-        self.title_frame_style = "background-color: #1c0029"
-        self.title_label_style = "font-size: 25px; color: #ffffff; font-weight: bold; font-style: italic"
-        self.project_frame_style = "background-color: #ffffff"
-        self.project_label_style = "font-size: 20px; color: #1c0029; font-weight: bold"
-        self.workspace_read_style = "text-align: left; padding-left: 6px;"
-
-        self.btn_style = """
-            QPushButton {
-                background-color: #5d5d5d;
-                color: #dddddd;
-                border: 1px solid #555555;
-                border-radius: 6px;
-                padding: 6px 10px;
-
-                font-style: italic;
-                font-weight: bold;
-                font-size: 38px;
-            }
-            QPushButton:hover {
-                background-color: #1c0029;
-            }
-            QPushButton:pressed {
-                background-color: #2f2f2f;
-            }
-            """
-
-        self.wks_height = 25
-
-        # -------------------------------------
-        #
         #       Initialization
         #
         # -------------------------------------
 
-        self.create_widgets()
-        self.create_layout()
-        self.create_connections()
-        self.set_defaults()
+        self.build_ui()
 
     # -------------------------------------
     #
@@ -237,7 +155,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         # Workspace LineEdit
         self.workspace_read_le = wdg.QLineEdit(self.current_wks)
-        self.workspace_read_le.setStyleSheet(self.workspace_read_style)
+        self.workspace_read_le.setStyleSheet(self.wks_read_style)
         self.workspace_read_le.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
         self.workspace_read_le.setFixedHeight(self.wks_height)
         self.workspace_read_le.setEnabled(False)
@@ -311,7 +229,7 @@ class tos_scene_manager_window(wdg.QMainWindow):
 
         # Load Button
         self.load_btn = wdg.QPushButton('LOAD SCENE')
-        self.load_btn.setStyleSheet(self.btn_style)
+        self.load_btn.setStyleSheet(self.btn_enabled_style)
         self.load_btn.setFixedWidth(270)
         self.load_btn.setFixedHeight(130)
 

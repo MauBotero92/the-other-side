@@ -6,6 +6,7 @@
 
 from TOS_Pipeline.src.dcc.maya.utils.qt_compat import wdg, core, gui
 from TOS_Pipeline.src.dcc.maya.utils.qt_utils import mbr_util_get_maya_window
+from TOS_Pipeline.src.dcc.maya.utils.qt_classes import MBR_TOS_Base_Window
 from TOS_Pipeline.src.dcc.maya.utils.qt_helpers import *
 from TOS_Pipeline.src.dcc.maya.utils.maya_utils import *
 
@@ -32,43 +33,13 @@ __VERSION__ = '4.0'
 #
 # -------------------------------------
 
-class tos_shot_creator_window(wdg.QMainWindow):
+class tos_shot_creator_window(MBR_TOS_Base_Window):
 
     def __init__(self, parent=None):
-        super(tos_shot_creator_window, self).__init__(parent)
-
-        # -------------------------------------
-        #
-        #       Window Title and Size
-        #
-        # -------------------------------------
-
-        self.setWindowTitle(f"TOS Shot Creator {__VERSION__}")
-        self.setFocusPolicy(core.Qt.ClickFocus)
-
-        screen = wdg.QApplication.primaryScreen()
-        screen_height = screen.availableGeometry().height()
-
-        if screen_height < 720:
-            initial_height = int(screen_height * 0.85)
-        else:
-            initial_height = 600 # 720
-
-        self.resize(460, initial_height)
-        self.setMinimumSize(460, min(initial_height, int(screen_height * 0.5)))
-
-        # -------------------------------------
-        #
-        #       Menu Bar
-        #
-        # -------------------------------------
-
-        menubar = self.menuBar()
-
-        help_menu = menubar.addMenu('Help')
-
-        help_action = gui.QAction('Go to pipeline-help channel in Slack', self)
-        help_menu.addAction(help_action)
+        super(tos_shot_creator_window, self).__init__(parent,
+                                                      title=f"TOS Shot Creator {__VERSION__}",
+                                                      width=460,
+                                                      height=600)
 
         # -------------------------------------
         #
@@ -146,76 +117,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
         self.cur_shot_number = None
         self.cur_stage = None
 
-        # -------------------------------------
-        #
-        #       Styles and Widget Variables
-        #
-        # -------------------------------------
-
-        self.group_boxes_style = """
-            QGroupBox {
-                background-color: #3b3b3b;
-                border: 1px solid #444444;
-                border-radius: 6px;
-                margin-top: 20px
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 4px 6px;
-                background-color: #2a2a2a2a;
-                color: #dddddd
-            }
-            """
-
-        self.title_frame_style = "background-color: #1c0029"
-        self.title_label_style = "font-size: 25px; color: #ffffff; font-weight: bold; font-style: italic"
-        self.project_frame_style = "background-color: #ffffff"
-        self.project_label_style = "font-size: 20px; color: #1c0029; font-weight: bold"
-        self.workspace_read_style = "text-align: left; padding-left: 6px;"
-
-        self.btn_style = """
-            QPushButton {
-                background-color: #5d5d5d;
-                color: #dddddd;
-                border: 1px solid #555555;
-                border-radius: 6px;
-                padding: 6px 10px;
-
-                font-style: italic;
-                font-weight: bold;
-                font-size: 30px;
-            }
-            QPushButton:hover {
-                background-color: #1c0029;
-            }
-            QPushButton:pressed {
-                background-color: #2f2f2f;
-            }
-            """
-
-        self.btn_style_disabled = """
-            QPushButton {
-                background-color: #3b3b3b;
-                color: #737373;
-                border: 1px solid #555555;
-                border-radius: 6px;
-                padding: 6px 10px;
-
-                font-style: italic;
-                font-weight: bold;
-                font-size: 30px;
-            }
-            QPushButton:hover {
-                background-color: #1c0029;
-            }
-            QPushButton:pressed {
-                background-color: #2f2f2f;
-            }
-            """
-
         self.combo_width = 220
-        self.wks_height = 25
 
         # -------------------------------------
         #
@@ -223,10 +125,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
         #
         # -------------------------------------
 
-        self.create_widgets()
-        self.create_layout()
-        self.create_connections()
-        self.set_defaults()
+        self.build_ui()
 
     # -------------------------------------
     #
@@ -268,7 +167,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
 
         # Workspace LineEdit
         self.wks_read_le = wdg.QLineEdit(self.current_wks)
-        self.wks_read_le.setStyleSheet(self.workspace_read_style)
+        self.wks_read_le.setStyleSheet(self.wks_read_style)
         self.wks_read_le.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
         self.wks_read_le.setFixedHeight(self.wks_height)
         self.wks_read_le.setEnabled(False)
@@ -322,14 +221,14 @@ class tos_shot_creator_window(wdg.QMainWindow):
 
         # File Combo Box
         self.file_le = wdg.QLineEdit()
-        self.file_le.setStyleSheet(self.workspace_read_style)
+        self.file_le.setStyleSheet(self.wks_read_style)
         self.file_le.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
         self.file_le.setFixedHeight(self.wks_height)
         self.file_le.setEnabled(False)
 
         # From File Line Edit
         self.from_file_le = wdg.QLineEdit()
-        self.from_file_le.setStyleSheet(self.workspace_read_style)
+        self.from_file_le.setStyleSheet(self.wks_read_style)
         self.from_file_le.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
         self.from_file_le.setFixedHeight(self.wks_height)
         self.from_file_le.setEnabled(False)
@@ -347,7 +246,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
 
         # Load Button
         self.create_shot_btn = wdg.QPushButton('CREATE\nSHOT')
-        self.create_shot_btn.setStyleSheet(self.btn_style)
+        self.create_shot_btn.setStyleSheet(self.btn_enabled_style)
         self.create_shot_btn.setFixedWidth(180)
         self.create_shot_btn.setFixedHeight(100)
 
@@ -613,7 +512,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
         self.shot_number_le.setEnabled(False)
 
         self.create_shot_btn.setEnabled(False)
-        self.create_shot_btn.setStyleSheet(self.btn_style_disabled)
+        self.create_shot_btn.setStyleSheet(self.btn_disabled_style)
 
     # -------------------------------------
     #
@@ -666,7 +565,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
             self.shot_number_le.setVisible(False)
 
         self.create_shot_btn.setEnabled(False)
-        self.create_shot_btn.setStyleSheet(self.btn_style_disabled)
+        self.create_shot_btn.setStyleSheet(self.btn_disabled_style)
 
     def from_current_radial_btn_clicked(self):
 
@@ -689,7 +588,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
 
         if self.from_file_le.text() == '':
             self.create_shot_btn.setEnabled(False)
-            self.create_shot_btn.setStyleSheet(self.btn_style_disabled)
+            self.create_shot_btn.setStyleSheet(self.btn_disabled_style)
 
         self.from_file_grp.setVisible(True)
         self.published_scene_grp.setVisible(False)
@@ -719,7 +618,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
             self.from_file_le.setText(self.path)
 
         self.create_shot_btn.setEnabled(True)
-        self.create_shot_btn.setStyleSheet(self.btn_style)
+        self.create_shot_btn.setStyleSheet(self.btn_enabled_style)
 
     def from_published_radial_btn_clicked(self):
 
@@ -795,7 +694,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
             mbr_helper_unlock_signals([self.stage_combo])
 
         self.create_shot_btn.setEnabled(True)
-        self.create_shot_btn.setStyleSheet(self.btn_style)
+        self.create_shot_btn.setStyleSheet(self.btn_enabled_style)
 
         if self.from_published_radial_btn.isChecked():
             # Sequence Variables
@@ -838,7 +737,7 @@ class tos_shot_creator_window(wdg.QMainWindow):
 
 
         self.create_shot_btn.setEnabled(True)
-        self.create_shot_btn.setStyleSheet(self.btn_style)
+        self.create_shot_btn.setStyleSheet(self.btn_enabled_style)
 
     def stage_combo_changed(self):
 
