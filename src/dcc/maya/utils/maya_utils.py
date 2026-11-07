@@ -154,3 +154,22 @@ def mbr_util_get_maya_extension(cur_file):
         maya_file_ext = 'mayaBinary'
 
     return maya_file_ext
+
+'''
+PURPOSE:
+PROCEDURE:
+ASSUMPTIONS:
+'''
+def mbr_util_add_handles_attribute(node):
+
+    cmds.addAttr(node, longName='startFrame', attributeType='long', keyable=False)
+    cmds.setAttr(f"{node}.startFrame", channelBox=True)
+
+    cmds.addAttr(node, longName='endFrame', attributeType='long', keyable=False)
+    cmds.setAttr(f"{node}.endFrame", channelBox=True)
+
+    start_frame = cmds.playbackOptions(q=True, min=True)
+    end_frame = cmds.playbackOptions(q=True, max=True)
+
+    cmds.setAttr(f"{node}.startFrame", start_frame)
+    cmds.setAttr(f"{node}.endFrame", end_frame)
