@@ -4,7 +4,7 @@
 #
 # -------------------------------------
 
-import TOS_Pipeline.pipeline.dcc.maya.engine.procedures.refresh_textures_engine as rtex
+import TOS_Pipeline.src.dcc.maya.model.engine.refresh_textures_engine as rtex
 import importlib
 import sys
 

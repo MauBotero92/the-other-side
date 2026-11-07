@@ -1,2 +1,2 @@
-import TOS_Pipeline.pipeline.dcc.maya.execute.refresh_textures_execute as rtex_exec
+import TOS_Pipeline.src.dcc.maya.model.execute.refresh_textures_execute as rtex_exec
 rtex_exec.execute()

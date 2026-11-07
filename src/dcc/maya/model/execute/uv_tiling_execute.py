@@ -4,7 +4,7 @@
 #
 # -------------------------------------
 
-import TOS_Pipeline.pipeline.dcc.maya.engine.procedures.uv_tiling_engine as uv
+import TOS_Pipeline.src.dcc.maya.model.engine.uv_tiling_engine as uv
 import importlib
 import sys
 
