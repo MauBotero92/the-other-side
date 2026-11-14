@@ -17,8 +17,8 @@ import sys
 #
 # -------------------------------------
 
-SOURCE_DIR = r"F:/10_maya_projects/MBR INC/assets/py/TOS_Pipeline/pipeline"
-DEST_DIR = r"P:/The Other Side/Production/Assets/Scripts/TOS_Pipeline/pipeline"
+SOURCE_DIR = r"F:/10_maya_projects/MBR INC/assets/py/TOS_Pipeline/src"
+DEST_DIR = r"P:/The Other Side/Production/Assets/Scripts/TOS_Pipeline/src"
 
 # Folders to exclude from the copy - add more names here if needed
 EXCLUDE_DIRS = [".venv", ".git", "__pycache__", ".idea"]

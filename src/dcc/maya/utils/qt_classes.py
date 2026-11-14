@@ -123,7 +123,33 @@ class MBR_TOS_Base_Window(wdg.QMainWindow):
         self.wks_height = 25
 
     def build_ui(self):
+
         self.create_widgets()
         self.create_layout()
         self.create_connections()
         self.set_defaults()
+
+    def group_widget(self,
+                     title,
+                     layout=wdg.QVBoxLayout,
+                     margins=(0,0,0,0),
+                     alignment=None,
+                     height=None):
+
+        grp = wdg.QGroupBox(title)
+        grp.setStyleSheet(self.group_boxes_style)
+
+        lyt = layout()
+        lyt.setContentsMargins(*margins)
+
+        if alignment is not None:
+            lyt.setAlignment(alignment)
+
+        if height is not None:
+            grp.setFixedHeight(height)
+
+        if isinstance(lyt, wdg.QFormLayout):
+            lyt.setLabelAlignment(core.Qt.AlignLeft)
+
+        grp.setLayout(lyt)
+        return grp, lyt

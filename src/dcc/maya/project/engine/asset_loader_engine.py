@@ -18,6 +18,11 @@ __all__ = [
     'mbr_egn_combo_changed',
 ]
 
+'''
+PURPOSE:
+PROCEDURE:
+ASSUMPTIONS:
+'''
 def mbr_egn_fill_first_combo(path, combo):
 
     lvl_01_folder_list = ['-'] + mbr_util_list_directory_contents(path, content_type='folders')
@@ -25,6 +30,11 @@ def mbr_egn_fill_first_combo(path, combo):
     combo.addItems(lvl_01_folder_list)
     combo.blockSignals(False)
 
+'''
+PURPOSE:
+PROCEDURE:
+ASSUMPTIONS:
+'''
 def mbr_egn_combo_changed(combos_list, lvl_text, lvl_dir, lvl_value, file_widget):
 
     if lvl_value != 5:

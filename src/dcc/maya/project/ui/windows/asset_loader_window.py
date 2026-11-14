@@ -82,8 +82,6 @@ class tos_asset_loader_window(MBR_TOS_Base_Window):
         # -------------------------------------
 
         # Init Variables
-        self.init_lvl_01_folder_list = None
-        self.lvl_01_folder_list = None
         self.current_file = None
 
         self.lvl_01_text, self.lvl_02_text, self.lvl_03_text = None, None, None
@@ -331,12 +329,12 @@ class tos_asset_loader_window(MBR_TOS_Base_Window):
         # -------------------------------------
 
         # Set Folder Group
-        set_folder_grp = wdg.QGroupBox('Workspace Folder')
-        set_folder_grp.setStyleSheet(self.group_boxes_style)
-        set_folder_lyt = wdg.QHBoxLayout()
-        set_folder_lyt.setContentsMargins(10,15,10,15)
-        set_folder_lyt.setAlignment(core.Qt.AlignLeft)
-        set_folder_grp.setLayout(set_folder_lyt)
+        set_folder_grp, set_folder_lyt = self.group_widget(
+            title='Workspace Folder',
+            layout=wdg.QHBoxLayout,
+            alignment=core.Qt.AlignLeft,
+            margins=(10,15,10,15)
+        )
 
         # Folder Levels Layouts
         lvl_01_lyt = wdg.QHBoxLayout()
@@ -346,12 +344,11 @@ class tos_asset_loader_window(MBR_TOS_Base_Window):
         lvl_05_lyt = wdg.QHBoxLayout()
 
         # Folder Selection Group
-        folder_selection_grp = wdg.QGroupBox('Folder Selection')
-        folder_selection_grp.setStyleSheet(self.group_boxes_style)
-        folder_selection_lyt = wdg.QFormLayout()
-        folder_selection_lyt.setLabelAlignment(core.Qt.AlignLeft)
-        folder_selection_lyt.setContentsMargins(10,15,10,15)
-        folder_selection_grp.setLayout(folder_selection_lyt)
+        folder_selection_grp, folder_selection_lyt = self.group_widget(
+            title='Folder Selection',
+            layout=wdg.QFormLayout,
+            margins=(10,15,10,15)
+        )
 
         # Folder Selection Group Rows
         folder_selection_lyt.addRow(lvl_01_lyt)
@@ -367,13 +364,12 @@ class tos_asset_loader_window(MBR_TOS_Base_Window):
         # -------------------------------------
 
         # File Selection Group
-        file_selection_grp = wdg.QGroupBox('File Selection')
-        file_selection_grp.setStyleSheet(self.group_boxes_style)
+        file_selection_grp, file_selection_lyt = self.group_widget(
+            title='File Selection',
+            margins=(10,10,10,10),
+            height=145
+        )
         file_selection_grp.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
-        file_selection_grp.setFixedHeight(145)
-        file_selection_lyt = wdg.QVBoxLayout()
-        file_selection_lyt.setContentsMargins(10,10,10,10)
-        file_selection_grp.setLayout(file_selection_lyt)
 
         # -------------------------------------
         #
@@ -382,12 +378,11 @@ class tos_asset_loader_window(MBR_TOS_Base_Window):
         # -------------------------------------
 
         # Options Group
-        options_grp = wdg.QGroupBox('Options')
-        options_grp.setStyleSheet(self.group_boxes_style)
-        options_lyt = wdg.QFormLayout()
-        options_lyt.setLabelAlignment(core.Qt.AlignLeft)
-        options_lyt.setContentsMargins(10,15,10,15)
-        options_grp.setLayout(options_lyt)
+        options_grp, options_lyt = self.group_widget(
+            'Options',
+            layout=wdg.QFormLayout,
+            margins=(10,15,10,15)
+        )
 
         # Options Layouts
         namespace_lyt = wdg.QHBoxLayout()
@@ -415,12 +410,11 @@ class tos_asset_loader_window(MBR_TOS_Base_Window):
         metadata_size_lyt = wdg.QHBoxLayout()
 
         # Metadata Group
-        metadata_grp = wdg.QGroupBox('Metadata')
-        metadata_grp.setStyleSheet(self.group_boxes_style)
-        metadata_lyt = wdg.QFormLayout()
-        metadata_lyt.setLabelAlignment(core.Qt.AlignLeft)
-        metadata_lyt.setContentsMargins(10,15,10,15)
-        metadata_grp.setLayout(metadata_lyt)
+        metadata_grp, metadata_lyt = self.group_widget(
+            title='Metadata',
+            layout=wdg.QFormLayout,
+            margins=(10,15,10,15)
+        )
 
         # Metadata Group Rows
         metadata_lyt.addRow('Last Saved     ', metadata_date_lyt)

@@ -4,7 +4,7 @@
 #
 # -------------------------------------
 
-from TOS_Pipeline.pipeline.core.fs_utils import *
+from TOS_Pipeline.src.core.fs_utils import *
 
 import os
 import maya.cmds as cmds

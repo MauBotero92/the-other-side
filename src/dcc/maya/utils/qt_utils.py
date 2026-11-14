@@ -4,8 +4,8 @@
 #
 # -------------------------------------
 
-from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wrapInstance as wrap
-from TOS_Pipeline.pipeline.dcc.maya.ui.utils.qt_compat import wdg
+from TOS_Pipeline.src.dcc.maya.utils.qt_compat import wrapInstance as wrap
+from TOS_Pipeline.src.dcc.maya.utils.qt_compat import wdg
 import maya.OpenMayaUI as omui
 
 # -------------------------------------------

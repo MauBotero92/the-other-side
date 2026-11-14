@@ -51,12 +51,13 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
         self.project_frame = None
         self.project_label = None
 
-        self.workspace_read_le = None
+        self.wks_read_le = None
         self.set_project_btn = None
 
         self.sequence_combo = None
         self.stage_combo = None
         self.shot_number_combo = None
+        self.lvl_combos = None
 
         self.file_list = None
 
@@ -79,21 +80,26 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
 
         if self.project_path:
             self.sequences_path = f"{self.project_path}Sequences"
-            self.init_sequences_list = ['-']
-            self.init_sequences_list.append(mbr_util_list_directory_contents(self.sequences_path, content_type='folders'))
-            self.sequences_list = [self.init_sequences_list[0]] + self.init_sequences_list[1]
         else:
-            self.sequences_list = []
+            self.sequences_path = None
+
+        # Current workspace variable
+        if self.sequences_path:
+            self.current_wks = cmds.workspace(q=True, rd=True)
+        else:
+            self.current_wks = 'Project is not set'
 
         # Combos first click variables
         self.sequence_first_click = True
         self.shot_number_first_click = True
         self.stage_first_click = True
 
-        # Current workspace variable
-        self.current_wks = cmds.workspace(q=True, rd=True)
-
         # Init Variables
+        self.current_file = None
+
+        self.sequence_text, self.shot_number_text, self.stage_text = None, None, None
+        self.sequence_dir, self.shot_number_dir, self.stage_dir = None, None, None
+
         self.project_wks = None
         self.sequences_list_initial = None
         self.current_sequence = None
@@ -105,7 +111,7 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
         self.stages_list_initial = None
         self.stages_list_filtered = None
         self.stages_list = None
-        self.current_file = None
+        # self.current_file = None
 
         # -------------------------------------
         #
@@ -154,11 +160,11 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
         # -------------------------------------
 
         # Workspace LineEdit
-        self.workspace_read_le = wdg.QLineEdit(self.current_wks)
-        self.workspace_read_le.setStyleSheet(self.wks_read_style)
-        self.workspace_read_le.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
-        self.workspace_read_le.setFixedHeight(self.wks_height)
-        self.workspace_read_le.setEnabled(False)
+        self.wks_read_le = wdg.QLineEdit(self.current_wks)
+        self.wks_read_le.setStyleSheet(self.wks_read_style)
+        self.wks_read_le.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
+        self.wks_read_le.setFixedHeight(self.wks_height)
+        self.wks_read_le.setEnabled(False)
 
         # Set Project Button
         self.set_project_btn = wdg.QPushButton('Set')
@@ -168,7 +174,7 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
         # Sequence Combo Box
         self.sequence_combo = wdg.QComboBox()
         self.sequence_combo.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
-        self.sequence_combo.addItems(self.sequences_list)
+        # self.sequence_combo.addItems(self.sequences_list)
 
         # Shot Number Combo Box
         self.shot_number_combo = wdg.QComboBox()
@@ -179,6 +185,9 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
         self.stage_combo = wdg.QComboBox()
         self.stage_combo.setSizePolicy(wdg.QSizePolicy.Expanding, wdg.QSizePolicy.Fixed)
         self.stage_combo.setEnabled(False)
+
+        # Combos List
+        self.lvl_combos = [self.sequence_combo, self.shot_number_combo, self.stage_combo]
 
         # -------------------------------------
         #
@@ -314,13 +323,12 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
         # -------------------------------------
 
         # Set Project Group Box
-        set_project_grp = wdg.QGroupBox('Workspace')
-        set_project_lyt = wdg.QHBoxLayout()
-        set_project_lyt.setContentsMargins(10, 15, 10, 15)
-        set_project_lyt.setAlignment(core.Qt.AlignLeft)
-        set_project_grp.setLayout(set_project_lyt)
-
-        set_project_grp.setStyleSheet(self.group_boxes_style)
+        set_project_grp, set_project_lyt = self.group_widget(
+            title='Workspace',
+            layout=wdg.QHBoxLayout,
+            margins=(10,15,10,15),
+            alignment=core.Qt.AlignLeft
+        )
 
         # Sequence Layout
         sequence_lyt = wdg.QHBoxLayout()
@@ -332,13 +340,12 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
         stage_lyt = wdg.QHBoxLayout()
 
         # Scene Selection Group Box
-        scene_selection_grp = wdg.QGroupBox('Scene Selection')
-        scene_selection_lyt = wdg.QFormLayout()
-        scene_selection_lyt.setLabelAlignment(core.Qt.AlignLeft)
-        scene_selection_lyt.setContentsMargins(10, 15, 10, 15)
-        scene_selection_grp.setLayout(scene_selection_lyt)
-
-        scene_selection_grp.setStyleSheet(self.group_boxes_style)
+        scene_selection_grp, scene_selection_lyt = self.group_widget(
+            title='Scene Selection',
+            layout=wdg.QFormLayout,
+            margins=(10,15,10,15),
+            alignment=core.Qt.AlignLeft
+        )
 
         # Scene Selection Group Rows
         scene_selection_lyt.addRow('Sequence     ', sequence_lyt)
@@ -355,13 +362,12 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
         file_lyt = wdg.QHBoxLayout()
 
         # File Selection Group
-        file_selection_grp = wdg.QGroupBox('File Selection')
-        file_selection_grp.setFixedHeight(370)
-        file_selection_lyt = wdg.QFormLayout()
-        file_selection_lyt.setContentsMargins(10,15,10,15)
-        file_selection_grp.setLayout(file_selection_lyt)
-
-        file_selection_grp.setStyleSheet(self.group_boxes_style)
+        file_selection_grp, file_selection_lyt = self.group_widget(
+            title='File Selection',
+            layout=wdg.QFormLayout,
+            margins=(10,15,10,15),
+            height=370
+        )
 
         # File Selection Group Rows
         file_selection_lyt.addRow(file_lyt)
@@ -390,12 +396,11 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
         metadata_size_lyt = wdg.QHBoxLayout()
 
         # Metadata Group
-        metadata_grp = wdg.QGroupBox('Metadata')
-        metadata_lyt = wdg.QFormLayout()
-        metadata_lyt.setContentsMargins(10,15,10,15)
-        metadata_grp.setLayout(metadata_lyt)
-
-        metadata_grp.setStyleSheet(self.group_boxes_style)
+        metadata_grp, metadata_lyt = self.group_widget(
+            title='Metadata',
+            layout=wdg.QFormLayout,
+            margins=(10,15,10,15)
+        )
 
         # Metadata Group Rows
         metadata_lyt.addRow('Last Saved:   ', metadata_date_lyt)
@@ -454,7 +459,7 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
         project_lyt.addWidget(self.project_label)
 
         # Set Project Widgets
-        set_project_lyt.addWidget(self.workspace_read_le)
+        set_project_lyt.addWidget(self.wks_read_le)
         set_project_lyt.addWidget(self.set_project_btn)
         sequence_lyt.addWidget(self.sequence_combo)
 
@@ -500,10 +505,26 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
 
     def set_defaults(self):
 
-        if self.project_path:
-            self.sequence_combo.setEnabled(True)
+        tos_root = mbr_util_get_tos_root() + '/Production/'
+
+        if tos_root == cmds.workspace(q=True, rootDirectory=True):
+
+            # Checks if the assets path is valid or not
+            if self.sequences_path:
+
+                self.set_project_btn.setEnabled(False)
+
+                # Enables combo boxes if the assets path is valid
+                mbr_helper_set_enabled(self.lvl_combos[:1])
+                mbr_helper_set_disabled(self.lvl_combos[1:])
+
+                # # Fills first combo box
+                mbr_egn_fill_first_combo(self.sequences_path, self.sequence_combo)
+
         else:
-            self.sequence_combo.setEnabled(False)
+
+            self.set_project_btn.setEnabled(True)
+            mbr_helper_set_disabled(self.lvl_combos)
 
     # -------------------------------------
     #
@@ -513,199 +534,63 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
 
     def set_project_btn_pressed(self):
 
-        # Block combos signals
-        mbr_helper_block_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
+        tos_root = mbr_util_get_tos_root() + '/Production/'
 
-        tos_root = mbr_util_get_tos_root()
-        project_path = f"{tos_root}/Production/"
+        if tos_root:
 
-        cmds.workspace(project_path, openWorkspace=True)
+            # Block combos signals
+            mbr_helper_block_signals(self.lvl_combos)
 
-        # Sets the read button text to current workspace
-        self.workspace_read_le.setText(project_path)
+            # Set project to project path
+            cmds.workspace(tos_root, openWorkspace=True)
 
-        # Set Project Button clean up
-        self.set_project_btn.setDown(False)
-        self.set_project_btn.clearFocus()
+            # Sets the read button text to current workspace
+            self.wks_read_le.setText(tos_root)
 
-        # Sequences Path
-        self.sequences_path = f"{project_path}/Sequences"
+            # Sets Sequences Path
+            self.sequences_path = f"{tos_root}Sequences"
 
-        # Enables the UI and fills up the fields if the workspace is set correctly
-        self.sequences_list_initial = mbr_util_list_directory_contents(self.sequences_path, content_type='folders')
-        self.sequences_list = ['-'] + self.sequences_list_initial
+            # Enables combo boxes if the sequences path is valid
+            mbr_helper_set_enabled(self.lvl_combos[:1])
+            mbr_helper_set_disabled(self.lvl_combos[1:])
 
-        self.sequence_combo.setEnabled(True)
-        self.sequence_combo.clear()
-        self.sequence_combo.addItems(self.sequences_list)
+            # Fills first combo box
+            mbr_egn_fill_first_combo(self.sequences_path, self.sequence_combo)
 
-        # Disables Set Project Button
-        self.set_project_btn.setEnabled(False)
+            # Disables Set Project Button
+            self.set_project_btn.setEnabled(False)
 
-        # Unlock combos signals
-        mbr_helper_unlock_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
+            # Unlock combos signals
+            mbr_helper_unlock_signals(self.lvl_combos)
+
+        else:
+            return
 
     def sequence_combo_changed(self):
 
-        # Initial variables and state
-        self.current_sequence = self.sequence_combo.currentText()
-        self.shot_number_combo.setEnabled(True)
+        # Function Variables
+        self.sequence_text = self.sequence_combo.currentText()
+        self.sequence_dir = f"{self.wks_read_le.text()}Sequences/{self.sequence_text}"
+        self.shot_number_text = self.stage_text = None
 
-        # Cleans up sequence combo box if trying to use it after the first time
-        mbr_egn_clean_initial_idx(self, 'sequence_first_click', self.sequence_combo, self.sequences_list)
-
-        # Blocks signals to prevent unwanted behavior in the other combo boxes
-        mbr_helper_block_signals([self.shot_number_combo, self.stage_combo])
-
-        # Combo Boxes clean up
-        self.shot_number_combo.setEnabled(True)
-        self.shot_number_combo.clear()
-
-        self.stage_combo.setEnabled(False)
-        self.stage_combo.clear()
-
-        self.file_list.setEnabled(False)
-        self.file_list.clear()
-
-        # Adding the shot number folders into the shot combo box
-        shot_number_folder_path_list = [
-            self.sequences_path, '/',
-            self.current_sequence
-        ]
-
-        shot_number_folder_path = ''.join(shot_number_folder_path_list)
-        self.shot_number_list_initial = mbr_util_list_directory_contents(shot_number_folder_path, content_type='folders')
-
-        self.shot_number_list_sorted = sorted(self.shot_number_list_initial, key=mbr_util_natural_key)
-        self.shot_number_list = ['-'] + self.shot_number_list_sorted
-
-        if self.shot_number_combo.count() == 0:
-            self.shot_number_combo.addItems(self.shot_number_list)
-        else:
-            self.shot_number_combo.clear()
-            self.shot_number_combo.addItems(self.shot_number_list)
-
-        # Enables signals to allow normal behavior in the other combo boxes
-        mbr_helper_unlock_signals([self.shot_number_combo, self.stage_combo])
+        mbr_egn_combo_changed(self.lvl_combos, self.sequence_text, self.sequence_dir, 1, self.file_list)
 
     def shot_number_combo_changed(self):
 
-        # Initial variables
-        self.current_shot_number = self.shot_number_combo.currentText()
-        self.current_stage = self.stage_combo.currentText()
+        # Function Variables
+        self.shot_number_text = self.shot_number_combo.currentText()
+        self.shot_number_dir = f"{self.sequence_dir}/{self.shot_number_text}"
+        self.stage_text = None
 
-        # Cleans up shot number combo box if trying to use it after the first time
-        mbr_egn_clean_initial_idx(self, 'shot_number_first_click', self.shot_number_combo, self.shot_number_list)
-
-        if self.stage_combo.count() == 0:
-            # Block signals
-            mbr_helper_block_signals([self.stage_combo])
-
-            # Combo Boxes clean up
-            self.stage_combo.setEnabled(True)
-            self.stage_combo.clear()
-
-            self.file_list.setEnabled(False)
-            self.file_list.clear()
-
-            # Adding stages folders into the stages combo box
-            stages_folders_path_list = [
-                self.sequences_path, '/',
-                self.current_sequence, '/',
-                self.current_shot_number
-                ]
-
-            stages_folders_path = ''.join(stages_folders_path_list)
-            self.stages_list_initial = mbr_util_list_directory_contents(stages_folders_path, content_type='folders')
-
-            self.stages_list_filtered = [x for x in self.stages_list_initial if not x.startswith('.')]
-            self.stages_list = ['-'] + self.stages_list_filtered
-
-            if self.stage_combo.count() == 0:
-                self.stage_combo.addItems(self.stages_list)
-            else:
-                self.stage_combo.clear()
-                self.stage_combo.addItems(self.stages_list)
-
-            # Unlock signals
-            mbr_helper_unlock_signals([self.stage_combo])
-
-        else:
-            # Block signals
-            mbr_helper_block_signals([self.stage_combo])
-
-            # Save current stage selection
-            current_stage_text = self.stage_combo.currentText()
-
-            # Clear file combo and leave it as-is
-            self.file_list.clear()
-
-            # Guards against '-' stage
-            if current_stage_text == '-' or not current_stage_text:
-                mbr_helper_unlock_signals([self.stage_combo])
-                return
-
-            # Rebuild stage combo for the new shot number
-            stage_files_path_list = [
-                self.sequences_path, '/',
-                self.current_sequence, '/',
-                self.current_shot_number, '/',
-                self.current_stage
-                ]
-
-            stage_files_path = ''.join(stage_files_path_list)
-            stage_folder_files = sorted(mbr_util_list_directory_contents(stage_files_path, content_type='files'))
-
-            self.stages_list_filtered = [x for x in self.stages_list_initial if not x.startswith('.')]
-            self.stages_list = ['-'] + self.stages_list_filtered
-
-            if len(stage_folder_files) == 0:
-                self.file_list.setEnabled(False)
-            else:
-                self.file_list.setEnabled(True)
-                self.file_list.addItems(stage_folder_files)
-
-            # Restore stage selection if it exists in the new shot
-            if current_stage_text in self.stages_list:
-                self.stage_combo.setCurrentText(current_stage_text)
-
-            self.file_list.setCurrentRow(self.file_list.count() - 1)
-
-            mbr_helper_unlock_signals([self.stage_combo])
+        mbr_egn_combo_changed(self.lvl_combos, self.shot_number_text, self.shot_number_dir, 2, self.file_list)
 
     def stage_combo_changed(self):
 
-        # Initial variables
-        self.current_stage = self.stage_combo.currentText()
+        # Function Variables
+        self.stage_text = self.stage_combo.currentText()
+        self.stage_dir = f"{self.shot_number_dir}/{self.stage_text}"
 
-        # Cleans up stage combo box if trying to use it after the first time
-        mbr_egn_clean_initial_idx(self, 'stage_first_click', self.stage_combo, self.stages_list)
-
-        # Stage lists
-        stage_files_path_list = [
-            self.sequences_path, '/',
-            self.current_sequence, '/',
-            self.current_shot_number, '/',
-            self.current_stage
-            ]
-
-        stage_files_path = ''.join(stage_files_path_list)
-        stage_folder_files = sorted(mbr_util_list_directory_contents(stage_files_path, content_type='files'))
-
-        # Combo Boxes clean up
-        if len(stage_folder_files) == 0:
-            self.file_list.setEnabled(False)
-            self.file_list.clear()
-        else:
-            self.file_list.setEnabled(True)
-            self.file_list.clear()
-
-        # Adding files in the file combo box
-        if self.current_stage != '-':
-            self.file_list.clear()
-            self.file_list.addItems(stage_folder_files)
-
-        self.file_list.setCurrentRow(self.file_list.count() - 1)
+        mbr_egn_combo_changed(self.lvl_combos, self.stage_text, self.stage_dir, 3, self.file_list)
 
     def file_list_changed(self):
 
@@ -714,59 +599,6 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
 
         # Initial Variables
         self.current_file = self.file_list.currentItem().text()
-        self.get_thumbnail()
-
-        # File path
-        file_path_list = [
-            self.sequences_path, '/',
-            self.current_sequence, '/',
-            self.current_shot_number, '/',
-            self.current_stage, '/',
-            self.current_file
-        ]
-        file_path = ''.join(file_path_list)
-
-        # Thumbnail path
-        thumb_path_list = [
-            self.sequences_path, '/',
-            self.current_sequence, '/',
-            self.current_shot_number, '/',
-            self.current_stage, '/',
-            '_thumbnail']
-        thumb_path = ''.join(thumb_path_list)
-
-        # Date
-        last_modified = datetime.fromtimestamp(os.path.getmtime(file_path))
-        self.metadata_date_label.setText(f"{last_modified.strftime('%Y-%m-%d %H:%M:%S')}")
-
-        # Artist and Time Range
-        self.metadata_artist_label.clear()
-        self.metadata_framerange_label.clear()
-
-        txt_path = Path(f"{thumb_path}/{self.current_file[:-3]}.txt")
-
-        if txt_path.exists():
-            with open(txt_path, 'r') as file:
-                content_artist = file.readline().strip()
-                content_frame_range = file.readline().strip()
-            if content_artist:
-                self.metadata_artist_label.setText(content_artist)
-            else:
-                self.metadata_artist_label.setText('no data')
-            if content_frame_range:
-                self.metadata_framerange_label.setText(content_frame_range)
-            else:
-                self.metadata_framerange_label.setText('no data')
-        else:
-            self.metadata_artist_label.setText('unknown')
-            self.metadata_framerange_label.setText('unknown')
-
-        # File Size
-        self.metadata_size_label.clear()
-        file_size_raw = os.path.getsize(file_path) / (1024 ** 2)
-        file_size_round = round(file_size_raw, 2)
-        self.metadata_size_label.setText(f"{str(file_size_round)} Mb")
-
 
     def load_btn_clicked(self):
 
@@ -774,14 +606,7 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
         self.current_file = self.file_list.currentItem().text()
 
         # Sets the path that the Load button is pointing depending on if the stage checkbox is checked
-        file_path_list = [
-            self.sequences_path, '/',
-            self.current_sequence, '/',
-            self.current_shot_number, '/',
-            self.current_stage, '/',
-            self.current_file
-        ]
-        file_path = ''.join(file_path_list)
+        file_path = f"{self.stage_dir}/{self.current_file}"
 
         # Variables to check if the file is modified or if it already has a path
         is_modified = cmds.file(q=True, modified=True)
@@ -824,7 +649,7 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
                         if 'layout' in path:
                             if len(path_base_name) == naming_layout_length:
                                 # Delete unknown nodes
-                                delete_unknown_nodes()
+                                # delete_unknown_nodes()
 
                                 # Saves file
                                 cmds.file(rename=path)
@@ -839,7 +664,7 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
                                 )
 
                                 # Creates thumbnail
-                                create_thumbnail()
+                                # create_thumbnail()
                             else:
                                 save_layout_error_msg = wdg.QMessageBox()
                                 save_layout_error_msg.critical(
@@ -847,9 +672,6 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
                                     'Naming Convention Error',
                                     'File should follow these naming conventions:\nT000_000_Layout_v001_00')
                                 return
-
-                    # Delete unknown nodes
-                    delete_unknown_nodes()
 
                     # Renames to file dialog path and saves the file
                     cmds.file(rename=path)
@@ -865,8 +687,6 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
 
                     mbr_util_open_file(file_path)
                 else:
-                    # Delete unknown nodes
-                    delete_unknown_nodes()
 
                     # Saves current file
                     cmds.file(save=True, force=True, type='mayaAscii')
@@ -880,7 +700,6 @@ class tos_scene_manager_window(MBR_TOS_Base_Window):
                     )
 
                     # Creates thumbnail and opens the file
-                    create_thumbnail()
                     mbr_util_open_file(file_path)
 
             # Open file when user selects 'No'
