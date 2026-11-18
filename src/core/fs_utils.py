@@ -9,6 +9,7 @@ import platform
 import ctypes
 import string
 import maya.cmds as cmds
+from pathlib import Path
 
 # -------------------------------------------
 #
@@ -150,7 +151,7 @@ def mbr_util_get_tos_root():
     else:
         home = Path.home()
 
-        return Path(f"{home}/pCloud Drive/The Other Side")
+        return str(home / 'pCloud Drive' / 'The Other Side')
 
 '''
 PURPOSE:        Get TOS workspace path
