@@ -64,6 +64,7 @@ class tos_shot_creator_window(MBR_TOS_Base_Window):
         self.shot_number_combo = None
         self.shot_number_le = None
         self.stage_combo = None
+        self.lvl_combos = None
 
         self.file_le = None
         self.from_file_le = None
@@ -213,6 +214,9 @@ class tos_shot_creator_window(MBR_TOS_Base_Window):
         self.stage_combo.setFixedWidth(self.combo_width)
         self.stage_combo.setEnabled(False)
 
+        # Combos List
+        self.lvl_combos = [self.sequence_combo, self.shot_number_combo, self.stage_combo]
+
         # -------------------------------------
         #
         #       Middle Widgets
@@ -311,13 +315,12 @@ class tos_shot_creator_window(MBR_TOS_Base_Window):
         # -------------------------------------
 
         # Set Project Group Box
-        set_project_grp = wdg.QGroupBox('Workspace')
-        set_project_lyt = wdg.QHBoxLayout()
-        set_project_lyt.setContentsMargins(10, 15, 10, 15)
-        set_project_lyt.setAlignment(core.Qt.AlignLeft)
-        set_project_grp.setLayout(set_project_lyt)
-
-        set_project_grp.setStyleSheet(self.group_boxes_style)
+        set_project_grp, set_project_lyt = self.group_widget(
+            title='Workspace',
+            layout=wdg.QHBoxLayout,
+            alignment=core.Qt.AlignLeft,
+            margins=(10,15,10,15)
+        )
 
         # Create Options
         create_options_lyt = wdg.QHBoxLayout()
@@ -334,13 +337,12 @@ class tos_shot_creator_window(MBR_TOS_Base_Window):
         stage_lyt = wdg.QHBoxLayout()
 
         # Scene Selection Group Box
-        scene_selection_grp = wdg.QGroupBox('Scene Selection')
-        scene_selection_lyt = wdg.QFormLayout()
-        scene_selection_lyt.setLabelAlignment(core.Qt.AlignLeft)
-        scene_selection_lyt.setContentsMargins(10, 15, 10, 15)
-        scene_selection_grp.setLayout(scene_selection_lyt)
-
-        scene_selection_grp.setStyleSheet(self.group_boxes_style)
+        scene_selection_grp, scene_selection_lyt = self.group_widget(
+            title='Scene Selection',
+            layout=wdg.QFormLayout,
+            alignment=core.Qt.AlignLeft,
+            margins=(10,15,10,15)
+        )
 
         # Scene Selection Group Rows
         scene_selection_lyt.addRow('Sequence     ', sequence_lyt)
@@ -357,12 +359,11 @@ class tos_shot_creator_window(MBR_TOS_Base_Window):
         file_lyt = wdg.QHBoxLayout()
 
         # File Selection Group
-        self.published_scene_grp = wdg.QGroupBox('Published Scene')
-        published_scene_lyt = wdg.QFormLayout()
-        published_scene_lyt.setContentsMargins(10,15,10,15)
-        self.published_scene_grp.setLayout(published_scene_lyt)
-
-        self.published_scene_grp.setStyleSheet(self.group_boxes_style)
+        self.published_scene_grp, published_scene_lyt = self.group_widget(
+            title='Published Scene',
+            layout=wdg.QFormLayout,
+            margins=(10,15,10,15)
+        )
 
         # File Selection Group Rows
         published_scene_lyt.addRow(file_lyt)
@@ -372,12 +373,11 @@ class tos_shot_creator_window(MBR_TOS_Base_Window):
         from_file_lyt = wdg.QHBoxLayout()
 
         # From File Group
-        self.from_file_grp = wdg.QGroupBox('From File Selection')
-        from_file_selection_lyt = wdg.QFormLayout()
-        from_file_selection_lyt.setContentsMargins(10,15,10,15)
-        self.from_file_grp.setLayout(from_file_selection_lyt)
-
-        self.from_file_grp.setStyleSheet(self.group_boxes_style)
+        self.from_file_grp, from_file_selection_lyt = self.group_widget(
+            title='From File Selection',
+            layout=wdg.QFormLayout,
+            margins=(10,15,10,15)
+        )
 
         # From File Group Roes
         from_file_selection_lyt.addRow(from_file_lyt)
@@ -493,6 +493,7 @@ class tos_shot_creator_window(MBR_TOS_Base_Window):
 
         if not self.sequences_path:
 
+            self.sequence_combo.clear()
             self.sequence_combo.setEnabled(False)
             self.shot_number_combo.setEnabled(False)
             self.stage_combo.setEnabled(False)
@@ -522,36 +523,41 @@ class tos_shot_creator_window(MBR_TOS_Base_Window):
 
     def set_project_btn_clicked(self):
 
-        # Block combos signals
-        mbr_helper_block_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
+        tos_root = mbr_util_get_tos_root() + '/Production/'
 
-        tos_root = mbr_util_get_tos_root()
-        project_path = f"{tos_root}/Production"
+        if tos_root:
 
-        cmds.workspace(project_path, openWorkspace=True)
+            # Block combos signals
+            mbr_helper_block_signals(self.lvl_combos)
 
-        # Sets the read button text to current workspace
-        self.wks_read_le.setText(project_path)
+            # Set project to project path
+            cmds.workspace(tos_root, openWorkspace=True)
 
-        # Set Project Button clean up
-        self.set_project_btn.setDown(False)
-        self.set_project_btn.clearFocus()
+            # Sets the read button text to current workspace
+            self.wks_read_le.setText(tos_root)
 
-        # Sequences Path
-        self.sequences_path = f"{project_path}/Sequences"
+            # Sets Sequences Path
+            self.sequences_path = f"{tos_root}Sequences"
 
-        self.sequence_combo.setEnabled(True)
-        self.sequence_combo.clear()
+            # Enables combo boxes if the sequences path is valid
+            mbr_helper_set_enabled(self.lvl_combos[:1])
+            mbr_helper_set_disabled(self.lvl_combos[1:])
 
-        for item in self.sequences_list:
-            self.sequence_combo.addItem(item[0], item[1])
-        self.sequence_combo.insertItem(0, '-')
-        self.sequence_combo.setCurrentIndex(0)
+            # Fills first combo box
+            self.sequence_combo.clear()
+            for item in self.sequences_list:
+                self.sequence_combo.addItem(item[0], item[1])
+            self.sequence_combo.insertItem(0, '-')
+            self.sequence_combo.setCurrentIndex(0)
 
-        # Disables Set Project Button
-        self.set_project_btn.setEnabled(False)
+            # Disables Set Project Button
+            self.set_project_btn.setEnabled(False)
 
-        mbr_helper_unlock_signals([self.sequence_combo, self.shot_number_combo, self.stage_combo])
+            # Unlock combo signals
+            mbr_helper_unlock_signals(self.lvl_combos)
+
+        else:
+            return
 
     def new_shot_check_toggled(self, checked):
 
@@ -640,38 +646,43 @@ class tos_shot_creator_window(MBR_TOS_Base_Window):
 
     def sequence_combo_changed(self):
 
-        # Initial variables and state
-        self.current_sequence = self.sequence_combo.currentData()
-        self.shot_number_combo.setEnabled(True)
-        self.shot_number_le.setEnabled(True)
+        self.cur_sequence = self.sequence_combo.currentData()
+        shot_number_path = f"{self.sequences_path}/{self.cur_sequence}"
 
-        # Blocks signals to prevent unwanted behavior in the other combo boxes
-        mbr_helper_block_signals([self.shot_number_combo, self.stage_combo])
+        mbr_egn_combo_changed(self.lvl_combos, shot_number_path, 1)
 
-        # Adding the shot number folders into the shot combo box
-        shot_number_folder_path_list = [
-            self.sequences_path, '/',
-            self.current_sequence
-        ]
-
-        shot_number_folder_path = ''.join(shot_number_folder_path_list)
-        self.shot_number_list_initial = mbr_util_list_directory_contents(shot_number_folder_path, content_type='folders')
-
-        self.shot_number_list_sorted = sorted(self.shot_number_list_initial, key=mbr_util_natural_key)
-        self.shot_number_list_sorted_trimmed = []
-        for item in self.shot_number_list_sorted:
-            self.shot_number_list_sorted_trimmed.append(item[-3:])
-
-        self.shot_number_list = ['-'] + self.shot_number_list_sorted_trimmed
-
-        if self.shot_number_combo.count() == 0:
-            self.shot_number_combo.addItems(self.shot_number_list)
-        else:
-            self.shot_number_combo.clear()
-            self.shot_number_combo.addItems(self.shot_number_list)
-
-        # Enables signals to allow normal behavior in the other combo boxes
-        mbr_helper_unlock_signals([self.shot_number_combo, self.stage_combo])
+        # # Initial variables and state
+        # self.current_sequence = self.sequence_combo.currentData()
+        # self.shot_number_combo.setEnabled(True)
+        # self.shot_number_le.setEnabled(True)
+        #
+        # # Blocks signals to prevent unwanted behavior in the other combo boxes
+        # mbr_helper_block_signals([self.shot_number_combo, self.stage_combo])
+        #
+        # # Adding the shot number folders into the shot combo box
+        # shot_number_folder_path_list = [
+        #     self.sequences_path, '/',
+        #     self.current_sequence
+        # ]
+        #
+        # shot_number_folder_path = ''.join(shot_number_folder_path_list)
+        # self.shot_number_list_initial = mbr_util_list_directory_contents(shot_number_folder_path, content_type='folders')
+        #
+        # self.shot_number_list_sorted = sorted(self.shot_number_list_initial, key=mbr_util_natural_key)
+        # self.shot_number_list_sorted_trimmed = []
+        # for item in self.shot_number_list_sorted:
+        #     self.shot_number_list_sorted_trimmed.append(item[-3:])
+        #
+        # self.shot_number_list = ['-'] + self.shot_number_list_sorted_trimmed
+        #
+        # if self.shot_number_combo.count() == 0:
+        #     self.shot_number_combo.addItems(self.shot_number_list)
+        # else:
+        #     self.shot_number_combo.clear()
+        #     self.shot_number_combo.addItems(self.shot_number_list)
+        #
+        # # Enables signals to allow normal behavior in the other combo boxes
+        # mbr_helper_unlock_signals([self.shot_number_combo, self.stage_combo])
 
     def shot_number_combo_changed(self):
 

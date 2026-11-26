@@ -24,6 +24,7 @@ __all__ = [
     'mbr_util_match_translation_to_obj',
     'mbr_util_parent_constraint',
     'mbr_util_get_maya_extension',
+    'mbr_util_reopen_cur_file',
 ]
 
 # -------------------------------------
@@ -33,33 +34,35 @@ __all__ = [
 # -------------------------------------
 
 '''
-PURPOSE:
-PROCEDURE:
-ASSUMPTIONS:
+PURPOSE:        Simplifies the reference command 
+PROCEDURE:      > Pass function arguments as variables on the file command
+ASSUMPTIONS:    None
 '''
 def mbr_util_file_reference(path, maya_type, namespace):
     cmds.file(path, r=True, type=maya_type, ns=namespace, op='v=0')
 
 '''
-PURPOSE:
-PROCEDURE:
-ASSUMPTIONS:
+PURPOSE:        Simplifies the import command
+PROCEDURE:      > Pass function arguments as variables on the file command
+ASSUMPTIONS:    None
 '''
 def mbr_util_file_import(path, maya_type):
     cmds.file(path, i=True, type=maya_type, ns=':', op='v=0')
 
 '''
-PURPOSE:
-PROCEDURE:
-ASSUMPTIONS:
+PURPOSE:        Simplifies the open command
+PROCEDURE:      > Pass function argument as variable on the file command
+ASSUMPTIONS:    None
 '''
 def mbr_util_open_file(path):
     cmds.file(path, open=True, ignoreVersion=True, force=True)
 
 '''
-PURPOSE:
-PROCEDURE:
-ASSUMPTIONS:
+PURPOSE:        Gets the namespaces on the scene, excluding the default ones
+PROCEDURE:      > Create a list with all the namespaces
+                > Filter the list by removing the default namespaces
+                > Return the filtered list of namespaces
+ASSUMPTIONS:    None
 '''
 def mbr_util_get_namespaces():
 
@@ -69,9 +72,12 @@ def mbr_util_get_namespaces():
     return scene_nmp_filtered
 
 '''
-PURPOSE:
-PROCEDURE:
-ASSUMPTIONS:
+PURPOSE:        Custom bake command
+PROCEDURE:      > Bake simulation command
+                > Applies the euler filter
+                > Delete static curves
+                > Regenerate UV Tiles as a texture fix
+ASSUMPTIONS:    None
 '''
 def mbt_util_bake_anim():
 
@@ -81,9 +87,10 @@ def mbt_util_bake_anim():
     mel.eval('generateAllUvTilePreviews')
 
 '''
-PURPOSE:        
-PROCEDURE:      
-ASSUMPTIONS:    
+PURPOSE:        Get selected object
+PROCEDURE:      > Creates a variable that stores the selection
+                > Checks if the selection is empty. If it is return None, else return the selection string
+ASSUMPTIONS:    None
 '''
 def mbr_util_get_selected_object():
 
@@ -94,9 +101,11 @@ def mbr_util_get_selected_object():
         return selection[0]
 
 '''
-PURPOSE:        
-PROCEDURE:      
-ASSUMPTIONS:    
+PURPOSE:        Match transformation to object
+PROCEDURE:      > Select the target
+                > Select the source
+                > Apply match transformation command
+ASSUMPTIONS:    None
 '''
 def mbr_util_match_translation_to_obj(target, source):
 
@@ -105,9 +114,10 @@ def mbr_util_match_translation_to_obj(target, source):
     mel.eval('MatchTranslation')
 
 '''
-PURPOSE:        
-PROCEDURE:      
-ASSUMPTIONS:    
+PURPOSE:        Get camera namespaces
+PROCEDURE:      > Get the camera transforms of the cameras with a namespace
+                > Get the namespaces of the animCam nodes and store them in an empty list
+ASSUMPTIONS:    The camera naming conventions is as follows: {namespace}:animCam
 '''
 def mbr_util_get_camera_namespaces():
 
@@ -127,9 +137,12 @@ def mbr_util_get_camera_namespaces():
     return cam_ns
 
 '''
-PURPOSE:
-PROCEDURE:
-ASSUMPTIONS:
+PURPOSE:        Simplification of the parent constraint command
+PROCEDURE:      > Select the source
+                > Select the target
+                > Apply the parent constraint depending if the argument offset is True or False
+                > Return the cur_cons
+ASSUMPTIONS:    None
 '''
 def mbr_util_parent_constraint(source, target, offset=True):
 
@@ -141,9 +154,13 @@ def mbr_util_parent_constraint(source, target, offset=True):
     else:
         cur_cons = cmds.parentConstraint(mo=False)[0]
 
+    return cur_cons
+
 '''
-PURPOSE:
-PROCEDURE:
+PURPOSE:        Get Maya file extension
+PROCEDURE:      > If file ends with .ma, declare the variable as a mayaAscii. If it ends with .mb, declare it as a
+                mayaBinary
+                > Return the variable
 ASSUMPTIONS:
 '''
 def mbr_util_get_maya_extension(cur_file):
@@ -156,9 +173,11 @@ def mbr_util_get_maya_extension(cur_file):
     return maya_file_ext
 
 '''
-PURPOSE:
-PROCEDURE:
-ASSUMPTIONS:
+PURPOSE:        Add camera handles attribute
+PROCEDURE:      > Create the startFrame attribute and make it visible on the Channel Box
+                > Create the endFrame attribute and make it visible on the Channel Box
+                > Get the start and end frame in the timeline and set the new attributes to these values
+ASSUMPTIONS:    The camera doesn't have an startFrame and endFrame attributes
 '''
 def mbr_util_add_handles_attribute(node):
 
@@ -173,3 +192,22 @@ def mbr_util_add_handles_attribute(node):
 
     cmds.setAttr(f"{node}.startFrame", start_frame)
     cmds.setAttr(f"{node}.endFrame", end_frame)
+
+'''
+PURPOSE:        Reopen current scene
+PROCEDURE:      > Declare a variable with the current file
+                > Force save current file
+                > Create a blank Maya scene
+                > Open the scene path on the cur_file variable
+ASSUMPTIONS:    None
+'''
+def mbr_util_reopen_cur_file():
+
+    cur_file = cmds.file(q=True, sceneName=True)
+
+    if cur_file:
+        cmds.file(save=True, force=True)
+        cmds.file(new=True, force=True)
+        cmds.file(cur_file, open=True, force=True)
+    else:
+        return

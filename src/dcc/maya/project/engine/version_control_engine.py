@@ -28,9 +28,19 @@ __all__ = [
 # -------------------------------------------
 
 '''
-PURPOSE:
-PROCEDURE:
-ASSUMPTIONS:
+PURPOSE:        Versions up the current file
+PROCEDURE:      > Declare variables to get the scene full path, file name, and path name
+                > Isolate the version integers of the scene file name
+                > If the scene file version 3rd digit is not equal to 9, version up only the 3rd integer
+                > If the scene file version 3rd digit is equal to 0 and the 2nd digit is not equal to 9, version up the
+                2nd digit and reset the 3rd to zero
+                > If both the scene file version 2nd and 3rd digits are 9, reset the 2nd and 3rd digits to 0 and version
+                up the 1st digit
+                > Rebuild the scene file string with the new version and 00 as a subversion
+                > While the new path exists already on the computer, apply the same version up logic until it hits
+                a path that doesn't exists
+                > Save old scene, rename scene to new path, and save new scene
+ASSUMPTIONS:    None
 '''
 def mbr_egn_version_up_scene():
 
@@ -107,7 +117,7 @@ def mbr_egn_version_up_scene():
     cmds.file(save=True, force=True, type='mayaAscii')
 
 '''
-PURPOSE:
+PURPOSE:        Subversions up the current file
 PROCEDURE:
 ASSUMPTIONS:
 '''
@@ -242,7 +252,7 @@ def mbr_egn_subversion_up_scene():
     cmds.file(save=True, force=True, type='mayaAscii')
 
 '''
-PURPOSE:
+PURPOSE:        Publish the current file
 PROCEDURE:
 ASSUMPTIONS:
 '''
@@ -257,18 +267,79 @@ def mbr_egn_publish_scene():
     shot_number_upper_case = shot_number.upper()
 
     published_shot_name = f"{scene_shot_folder}/{shot_number_upper_case}.ma"
-    # files_in_current_shot_folder = list_files_in_dir(scene_shot_folder)
     files_in_current_shot_folder = mbr_util_list_directory_contents(scene_shot_folder, content_type='files')
 
     last_sep_index = published_shot_name.rfind('/')
     published_shot_name_sliced = published_shot_name[last_sep_index + 1:]
 
-    # Save file copy
-    if published_shot_name_sliced in files_in_current_shot_folder:
-        publish_response = cmds.confirmDialog(
-            m='WARNING: There is already a published shot, do you want to overwrite it?', b=['Yes', 'No', 'Exit'])
+    # Checks on the option 'Ignore Hidden in Outliner' in the Display menu (Outliner)
+    for panel in cmds.getPanel(type='outlinerPanel') or []:
+        editor = cmds.outlinerPanel(panel, q=True, outlinerEditor=True)
+        cmds.outlinerEditor(editor, e=True, ignoreHiddenAttribute=True)
 
-        if publish_response == 'Yes':
+    # Creates a list of the top level nodes and the extra nodes that are different from the default nulls
+    null_list = ['CAM', 'CHAR', 'CRE', 'PROPS', 'SET', 'MISC', 'LIGHTS', 'VEH', 'VFX']
+    default_cams = {'persp', 'top', 'front', 'side'}
+    top_nodes = [node for node in cmds.ls(assemblies=True) if node not in default_cams]
+    extra_nodes = [node for node in top_nodes if node not in null_list]
+
+    # Creates a list for the unloaded references
+    ref_nodes = [ref for ref in cmds.ls(type='reference') if ref not in ('sharedReferenceNode', '_UNKNOWN_REF_NODE_')]
+    ref_unloaded = [ref for ref in ref_nodes if not cmds.referenceQuery(ref, isLoaded=True)]
+
+    # Creates a list with the animation layers in the scene
+    anim_layers = cmds.ls(type='animLayer')
+
+    # Creates a list with all the constraints in the scene that are not referenced
+    constraints = [cons for cons in cmds.ls(type='constraint') if not cmds.referenceQuery(cons, isNodeReferenced=True)]
+
+    # Check Guard if the outliner only have the nulls of the nulls_list as the top level nodes
+    if extra_nodes:
+        cmds.confirmDialog(m='ERROR: Outliner is not clean.\n'
+                             'Please check that all the nodes are within the shot tree organization nulls.')
+
+    # Check Guard if there are unloaded reference nodes in the scene
+    elif ref_unloaded:
+        cmds.confirmDialog(m='ERROR: There are unloaded reference nodes in the scene.\n'
+                             'Please remove the reference nodes through the Outliner or the Reference Editor.')
+
+    # Check Guard if the current file is a Maya Binary
+    elif scene_file_name.endswith('.mb'):
+        cmds.confirmDialog(m='ERROR: The file must be a Maya ASCII (.ma) and not Maya Binary (.mb).\n'
+                             'Please save the current file as a new version as a Maya ASCII (.ma)')
+
+    # Check Guard if there are any animation layer other than the Base Animation
+    elif len(anim_layers) > 1:
+        cmds.confirmDialog(m='ERROR: There are animation layers that are not baked into the Base Animation layer.\n'
+                             'Please merge any animation layer to the Base Animation layer.')
+
+    # Check Guard if there are any constraints in the scene
+    elif constraints:
+        cmds.confirmDialog(m='ERROR: There are unbaked not-referenced constraints in the scene.\n'
+                             'Please bake all the constraints that were used through layout/animation')
+
+    else:
+        # Save file copy
+        if published_shot_name_sliced in files_in_current_shot_folder:
+            publish_response = cmds.confirmDialog(
+                m='WARNING: There is already a published shot, do you want to overwrite it?', b=['Yes', 'No', 'Exit'])
+
+            if publish_response == 'Yes':
+                # Publish shot
+                cmds.file(rename=f"{scene_shot_folder}/{shot_number_upper_case}.ma")
+                cmds.file(save=True)
+
+                # Return to session
+                cmds.file(rename=f"{scene_path_name}/{scene_file_name}")
+                cmds.file(save=True)
+
+                cmds.confirmDialog(m='Shot published successfully!')
+
+            else:
+                cmds.confirmDialog(m='Operation Cancelled')
+                return
+
+        else:
             # Publish shot
             cmds.file(rename=f"{scene_shot_folder}/{shot_number_upper_case}.ma")
             cmds.file(save=True)
@@ -278,18 +349,3 @@ def mbr_egn_publish_scene():
             cmds.file(save=True)
 
             cmds.confirmDialog(m='Shot published successfully!')
-
-        else:
-            cmds.confirmDialog(m='Operation Cancelled')
-            return
-
-    else:
-        # Publish shot
-        cmds.file(rename=f"{scene_shot_folder}/{shot_number_upper_case}.ma")
-        cmds.file(save=True)
-
-        # Return to session
-        cmds.file(rename=f"{scene_path_name}/{scene_file_name}")
-        cmds.file(save=True)
-
-        cmds.confirmDialog(m='Shot published successfully!')
